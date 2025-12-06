@@ -1,0 +1,425 @@
+// lib/screens/home_screen.dart
+import 'package:flutter/material.dart';
+import 'dart:async';
+import '../services/weight_service.dart';
+// Eliminados imports legacy (HistoryService, WeightRecord) al migrar totalmente a sesiones industriales
+import '../widgets/weight_display.dart';
+import '../utils/screenshot_helper.dart';
+import 'bluetooth_screen.dart';
+import 'calibration_screen.dart';
+import 'config_screen.dart';
+import 'package:f16_balanza_electronica/screens/history_screen.dart';
+import 'session_pro_screen.dart'; // <- nueva importación para sesiones pro
+import '../mixins/weight_stream_mixin.dart';
+
+class HomeScreen extends StatefulWidget {
+  const HomeScreen({Key? key}) : super(key: key);
+
+  @override
+  State<HomeScreen> createState() => _HomeScreenState();
+}
+
+class _HomeScreenState extends State<HomeScreen>
+    with WeightStreamMixin<HomeScreen> {
+  final WeightService _weightService = WeightService();
+  StreamSubscription?
+      _weightSubscription; // Subscription local para peso, diferente al del mixin
+  StreamSubscription? _configSubscription;
+
+  // GlobalKey para captura de screenshot
+  final _screenshotKey = GlobalKey();
+
+  double _peso = 0.0;
+  double _tara = 0.0;
+  double _divisionMinima = 0.01;
+  String _unidad = 'kg';
+
+  // --- Indicador de estabilidad UI ---
+  double? _lastPeso;
+  DateTime? _lastStableTime;
+  bool _uiEstable = false;
+  static const int _stableDelayMs =
+      600; // ms que debe estar quieto para ser estable
+
+  bool _overload = false;
+  // Timer para pulsación larga del botón TARA
+  Timer? _taraResetTimer;
+
+  @override
+  void initState() {
+    super.initState();
+    _initializeService();
+  }
+
+  Future<void> _initializeService() async {
+    await _weightService.initialize();
+    _weightService.start();
+
+    _tara = _weightService.tareKg;
+    _divisionMinima = _weight_service_divisionFallback(_weightService);
+    _unidad = _weightService.loadCellConfig.unidad;
+
+    _weightSubscription = _weightService.weightStateStream.listen((state) {
+      if (mounted) {
+        setState(() {
+          _peso = state.peso;
+          adcRaw = state.adcRaw;
+
+          final now = DateTime.now();
+          if (_lastPeso == null || (_peso - _lastPeso!).abs() > 0.001) {
+            _uiEstable = false;
+            _lastStableTime = now;
+          } else {
+            if (_lastStableTime != null &&
+                now.difference(_lastStableTime!).inMilliseconds >=
+                    _stableDelayMs) {
+              _uiEstable = true;
+            }
+          }
+          _lastPeso = _peso;
+
+          _overload = state.overload;
+        });
+      }
+    });
+    _configSubscription = _weightService.configStream.listen((config) {
+      if (mounted) {
+        setState(() {
+          _divisionMinima = config.divisionMinima;
+          _unidad = config.unidad;
+        });
+      }
+    });
+  }
+
+  // pequeña función helper para evitar crash si loadCellConfig aún no cargó (defensiva)
+  double _weight_service_divisionFallback(WeightService svc) {
+    try {
+      return svc.divisionMinima;
+    } catch (_) {
+      return 0.01;
+    }
+  }
+
+  @override
+  void dispose() {
+    _weightService.stop();
+    _weightSubscription?.cancel();
+    _configSubscription?.cancel();
+    super.dispose();
+  }
+
+  void _handleTara() {
+    _weightService.takeTareNow();
+    setState(() {
+      _tara = _weightService.tareKg;
+    });
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(
+        content: Text('Tara aplicada'),
+        duration: Duration(seconds: 1),
+        backgroundColor: Colors.purple,
+      ),
+    );
+  }
+
+  void _handleResetTara() {
+    _weightService.setTareKg(0.0);
+    setState(() {
+      _tara = _weightService.tareKg;
+    });
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(
+        content: Text('Tara reseteada'),
+        duration: Duration(seconds: 1),
+        backgroundColor: Colors.purple,
+      ),
+    );
+  }
+
+  void _startTaraResetCountdown() {
+    _taraResetTimer?.cancel();
+    _taraResetTimer = Timer(const Duration(seconds: 3), () {
+      if (mounted) {
+        _handleResetTara();
+      }
+    });
+  }
+
+  void _cancelTaraResetCountdown() {
+    _taraResetTimer?.cancel();
+    _taraResetTimer = null;
+  }
+
+  void _handleCero() {
+    _weightService.setZeroOffset();
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(
+        content: Text('Cero operativo aplicado'),
+        duration: Duration(seconds: 1),
+        backgroundColor: Colors.orange,
+      ),
+    );
+  }
+
+  // ------------------------------------------------------------
+  // NUEVO: Navegación a SessionProScreen (mantengo handlers antiguos comentados)
+  // ------------------------------------------------------------
+  void _handleCarga() {
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) =>
+            SessionProScreen(tipo: 'carga', pesoActual: _peso),
+      ),
+    );
+  }
+
+  void _handleDescarga() {
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) =>
+            SessionProScreen(tipo: 'descarga', pesoActual: _peso),
+      ),
+    );
+  }
+
+  // Eliminada lógica clásica de acumulación (historial simple) al usar solo sesiones industriales
+
+  // ═══════════════════════════════════════════════════════════════════
+  // REFACTORIZACIÓN UI: Responsive + Tema F-16 Minimalista
+  // ═══════════════════════════════════════════════════════════════════
+  @override
+  Widget build(BuildContext context) {
+    return RepaintBoundary(
+      key: _screenshotKey,
+      child: Scaffold(
+        body: SafeArea(
+          child: LayoutBuilder(
+            // Nuevo: responsive layout
+            builder: (context, constraints) {
+              final screenWidth = constraints.maxWidth;
+              final isMobile = screenWidth < 600;
+              final isTablet = screenWidth >= 600 && screenWidth < 900;
+
+              return Container(
+                color: Colors.grey[850], // F-16: gris metálico oscuro
+                padding: EdgeInsets.all(isMobile ? 8.0 : 12.0),
+                child: Column(
+                  children: [
+                    // Display de peso (mantiene lógica intacta)
+                    Flexible(
+                      flex: 6,
+                      child: Center(
+                        child: WeightDisplay(
+                          peso: _peso,
+                          estable: _uiEstable,
+                          adc: adcRaw,
+                          tara: _tara,
+                          divisionMinima: _divisionMinima,
+                          overload: _overload,
+                          unidad: _unidad,
+                        ),
+                      ),
+                    ),
+                    SizedBox(height: isMobile ? 4 : 8),
+
+                    // Botones de acción - responsive
+                    Flexible(
+                      flex: isMobile ? 2 : 1,
+                      child:
+                          _buildResponsiveButtons(context, isMobile, isTablet),
+                    ),
+                  ],
+                ),
+              );
+            },
+          ),
+        ),
+        floatingActionButton: FloatingActionButton(
+          onPressed: () async {
+            final bytes = await ScreenshotHelper.captureWidget(_screenshotKey);
+            if (bytes != null) {
+              await ScreenshotHelper.sharePng(bytes,
+                  filenamePrefix: 'home_screen');
+            } else {
+              ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(
+                  content: Text('Error al capturar pantalla'),
+                  backgroundColor: Colors.red,
+                ),
+              );
+            }
+          },
+          backgroundColor: Colors.grey[800],
+          child: const Icon(
+            Icons.camera_alt,
+            color: Color.fromARGB(160, 145, 117, 117),
+            size: 30,
+          ),
+        ),
+      ),
+    );
+  }
+
+  // Nuevo: Layout responsivo para botones
+  Widget _buildResponsiveButtons(
+      BuildContext context, bool isMobile, bool isTablet) {
+    final buttons = [
+      _buildTaraButton(isMobile, isTablet),
+      _buildActionButton(
+          'CERO', Icons.clear_all, _handleCero, isMobile, isTablet),
+      _buildActionButton(
+          'CARGA', Icons.add_circle, _handleCarga, isMobile, isTablet,
+          isPositive: true),
+      _buildActionButton(
+          'DESCARGA', Icons.remove_circle, _handleDescarga, isMobile, isTablet,
+          isNegative: true),
+      _buildActionButton('CONFIG', Icons.settings,
+          () => _navigateTo(const ConfigScreen()), isMobile, isTablet),
+      _buildActionButton('CALIBRAR', Icons.tune,
+          () => _navigateTo(const CalibrationScreen()), isMobile, isTablet),
+      _buildActionButton('BT', Icons.bluetooth,
+          () => _navigateTo(const BluetoothScreen()), isMobile, isTablet),
+      _buildActionButton('HISTORIAL', Icons.history,
+          () => _navigateTo(const HistoryScreen()), isMobile, isTablet),
+    ];
+
+    if (isMobile) {
+      // Mobile: ScrollView vertical para evitar overflow
+      return SingleChildScrollView(
+        child: Wrap(
+          alignment: WrapAlignment.center,
+          spacing: 4,
+          runSpacing: 4,
+          children: buttons,
+        ),
+      );
+    } else {
+      // Tablet/Desktop: fila horizontal con scroll
+      return SingleChildScrollView(
+        scrollDirection: Axis.horizontal,
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: buttons
+              .map((btn) => Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 4.0),
+                    child: btn,
+                  ))
+              .toList(),
+        ),
+      );
+    }
+  }
+
+  // Nuevo: Botón de acción estilo F-16 minimalista responsive
+  Widget _buildActionButton(
+    String label,
+    IconData icon,
+    VoidCallback onPressed,
+    bool isMobile,
+    bool isTablet, {
+    bool isPositive = false,
+    bool isNegative = false,
+  }) {
+    // Tamaño responsivo
+    final buttonSize = isMobile ? 70.0 : (isTablet ? 85.0 : 95.0);
+    final iconSize = isMobile ? 18.0 : 20.0;
+    final fontSize = isMobile ? 9.0 : 10.0;
+
+    // Tema F-16: azul militar base, verde para positivo, rojo para negativo
+    Color bgColor = Colors.blueGrey[700]!;
+    if (isPositive) bgColor = Colors.green[700]!;
+    if (isNegative) bgColor = Colors.red[400]!;
+
+    return SizedBox(
+      width: buttonSize,
+      height: buttonSize,
+      child: ElevatedButton(
+        onPressed: onPressed,
+        style: ElevatedButton.styleFrom(
+          backgroundColor: bgColor,
+          foregroundColor: Colors.white,
+          padding: const EdgeInsets.all(6),
+          elevation: 3, // F-16: sombra sutil para "velocidad"
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(4), // F-16: bordes angulares
+          ),
+        ),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(icon, size: iconSize),
+            const SizedBox(height: 2),
+            Text(
+              label.toUpperCase(),
+              textAlign: TextAlign.center,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: TextStyle(
+                fontSize: fontSize,
+                fontWeight: FontWeight.bold,
+                letterSpacing: 0.5, // F-16: espaciado militar
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  // Nuevo: Botón TARA estilo F-16 responsive (mantiene lógica long press)
+  Widget _buildTaraButton(bool isMobile, bool isTablet) {
+    final buttonSize = isMobile ? 70.0 : (isTablet ? 85.0 : 95.0);
+    final iconSize = isMobile ? 18.0 : 20.0;
+    final fontSize = isMobile ? 9.0 : 10.0;
+
+    return SizedBox(
+      width: buttonSize,
+      height: buttonSize,
+      child: GestureDetector(
+        onTap: _handleTara,
+        onLongPressStart: (_) => _startTaraResetCountdown(),
+        onLongPressEnd: (_) => _cancelTaraResetCountdown(),
+        onTapCancel: _cancelTaraResetCountdown,
+        child: ElevatedButton(
+          onPressed: _handleTara,
+          style: ElevatedButton.styleFrom(
+            backgroundColor:
+                Colors.blueGrey[700], // F-16: azul militar unificado
+            foregroundColor: Colors.white,
+            padding: const EdgeInsets.all(6),
+            elevation: 3,
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(4),
+            ),
+          ),
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Icon(Icons.scale, size: iconSize),
+              const SizedBox(height: 2),
+              Text(
+                'TARA',
+                textAlign: TextAlign.center,
+                style: TextStyle(
+                  fontSize: fontSize,
+                  fontWeight: FontWeight.bold,
+                  letterSpacing: 0.5,
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  void _navigateTo(Widget screen) {
+    Navigator.push(
+      context,
+      MaterialPageRoute(builder: (context) => screen),
+    );
+  }
+}

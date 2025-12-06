@@ -1,0 +1,439 @@
+import 'package:flutter/material.dart';
+import 'package:flutter_bluetooth_serial/flutter_bluetooth_serial.dart';
+import '../services/bluetooth_service.dart';
+import '../utils/screenshot_helper.dart';
+
+class BluetoothScreen extends StatefulWidget {
+  const BluetoothScreen({Key? key}) : super(key: key);
+
+  @override
+  State<BluetoothScreen> createState() => _BluetoothScreenState();
+}
+
+class _BluetoothScreenState extends State<BluetoothScreen> {
+  final BluetoothService _bluetoothService = BluetoothService();
+  List<BluetoothDevice> _devices = [];
+  bool _isScanning = false;
+  bool _isConnected = false;
+  String? _connectedDeviceName;
+  int _ultimoADC = 0;
+  final _screenshotKey = GlobalKey();
+
+  @override
+  void initState() {
+    super.initState();
+    _checkBluetoothAndLoadDevices();
+
+    // Escuchar cambios de conexión
+    _bluetoothService.connectionStream.listen((connected) {
+      if (mounted) {
+        setState(() {
+          _isConnected = connected;
+          if (!connected) {
+            _connectedDeviceName = null;
+          }
+        });
+      }
+    });
+
+    // Escuchar valores ADC
+    _bluetoothService.adcStream.listen((adc) {
+      if (mounted) {
+        setState(() {
+          _ultimoADC = adc;
+        });
+      }
+    });
+  }
+
+  Future<void> _checkBluetoothAndLoadDevices() async {
+    // Verificar permisos primero
+    final hasPermissions = await _bluetoothService.checkAndRequestPermissions();
+    if (!hasPermissions) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: const Text(
+                'Se necesitan permisos de Bluetooth para continuar.'),
+            backgroundColor: Colors.red[800], // F-16
+            duration: const Duration(seconds: 3),
+          ),
+        );
+      }
+      return;
+    }
+
+    bool? isEnabled = await _bluetoothService.isBluetoothEnabled();
+
+    if (isEnabled == false) {
+      bool? enabled = await _bluetoothService.requestEnable();
+      if (enabled == false || enabled == null) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: const Text('Bluetooth no está habilitado'),
+              backgroundColor: Colors.red[800], // F-16
+            ),
+          );
+        }
+        return;
+      }
+    }
+
+    await _loadPairedDevices();
+  }
+
+  Future<void> _loadPairedDevices() async {
+    setState(() {
+      _isScanning = true;
+    });
+
+    try {
+      List<BluetoothDevice> devices =
+          await _bluetoothService.getPairedDevices();
+      setState(() {
+        _devices = devices;
+        _isScanning = false;
+      });
+    } catch (e) {
+      setState(() {
+        _isScanning = false;
+      });
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Error cargando dispositivos: $e'),
+            backgroundColor: Colors.red[800], // F-16
+          ),
+        );
+      }
+    }
+  }
+
+  Future<void> _connectToDevice(BluetoothDevice device) async {
+    // Verificar permisos antes de conectar
+    final hasPermissions = await _bluetoothService.checkAndRequestPermissions();
+    if (!hasPermissions) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: const Text(
+                'Se necesitan permisos de Bluetooth para continuar.'),
+            backgroundColor: Colors.red[800], // F-16
+            duration: const Duration(seconds: 3),
+          ),
+        );
+      }
+      return;
+    }
+
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (context) => const Center(
+        child: CircularProgressIndicator(),
+      ),
+    );
+
+    bool connected = await _bluetoothService.connect(device.address);
+
+    if (mounted) {
+      Navigator.pop(context);
+
+      if (connected) {
+        setState(() {
+          _isConnected = true;
+          _connectedDeviceName = device.name ?? device.address;
+        });
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Conectado a ${device.name}'),
+            backgroundColor: Colors.green[700], // F-16
+          ),
+        );
+      } else {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Error conectando a ${device.name}'),
+            backgroundColor: Colors.red[800], // F-16
+          ),
+        );
+      }
+    }
+  }
+
+  Future<void> _disconnect() async {
+    await _bluetoothService.disconnect();
+    if (mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: const Text('Desconectado'),
+          backgroundColor: Colors.blueGrey[600], // F-16
+        ),
+      );
+    }
+  }
+
+  // F-16: BUILD METHOD REFACTORIZADO
+  @override
+  Widget build(BuildContext context) {
+    return RepaintBoundary(
+      key: _screenshotKey,
+      child: Scaffold(
+        appBar: AppBar(
+          title: const Text(
+            'CONEXIÓN BLUETOOTH', // F-16: MAYÚSCULAS
+            style: TextStyle(
+              fontSize: 14,
+              fontWeight: FontWeight.bold,
+              letterSpacing: 1.5, // F-16
+            ),
+          ),
+          backgroundColor: Colors.blueGrey[800], // F-16: azul militar
+          actions: [
+            IconButton(
+              icon: Icon(Icons.refresh, color: Colors.grey[400]), // F-16
+              onPressed: _isConnected ? null : _loadPairedDevices,
+            ),
+            IconButton(
+              icon: Icon(Icons.camera_alt, color: Colors.grey[400]), // F-16
+              onPressed: () async {
+                final bytes =
+                    await ScreenshotHelper.captureWidget(_screenshotKey);
+                if (bytes != null) {
+                  await ScreenshotHelper.sharePng(bytes,
+                      filenamePrefix: 'bluetooth');
+                } else {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(
+                      content: const Text('Error al capturar pantalla'),
+                      backgroundColor: Colors.red[800], // F-16
+                    ),
+                  );
+                }
+              },
+            ),
+          ],
+        ),
+        body: Container(
+          color: Colors.grey[900], // F-16: fondo oscuro
+          child: Column(
+            children: [
+              // F-16: PANEL DE ESTADO
+              Container(
+                width: double.infinity,
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                decoration: BoxDecoration(
+                  color: Colors.grey[850], // F-16: fondo uniforme
+                  border: Border(
+                    bottom: BorderSide(color: Colors.blueGrey[700]!, width: 1),
+                  ),
+                ),
+                child: Row(
+                  children: [
+                    Icon(
+                      _isConnected
+                          ? Icons.bluetooth_connected
+                          : Icons.bluetooth_disabled,
+                      color: _isConnected
+                          ? Colors.green[700] // F-16: verde militar
+                          : Colors.grey[600], // F-16: gris apagado
+                      size: 28,
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Text(
+                        _isConnected
+                            ? 'CONECTADO: $_connectedDeviceName' // F-16: MAYÚSCULAS
+                            : 'DESCONECTADO',
+                        style: TextStyle(
+                          fontSize: 14,
+                          fontWeight: FontWeight.bold,
+                          letterSpacing: 1.2, // F-16
+                          color: _isConnected
+                              ? Colors.green[700]
+                              : Colors.grey[500],
+                        ),
+                      ),
+                    ),
+                    if (_isConnected) ...[
+                      const SizedBox(width: 16),
+                      Container(
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 16, vertical: 8),
+                        decoration: BoxDecoration(
+                          color: Colors.black87,
+                          borderRadius:
+                              BorderRadius.circular(4), // F-16: angular
+                          border:
+                              Border.all(color: Colors.cyan[700]!, width: 1),
+                        ),
+                        child: Text(
+                          'ADC: $_ultimoADC',
+                          style: TextStyle(
+                            fontSize: 18,
+                            fontWeight: FontWeight.bold,
+                            color: Colors.cyan[700], // F-16: cian militar
+                            fontFamily: 'monospace',
+                            letterSpacing: 1.5,
+                          ),
+                        ),
+                      ),
+                      const SizedBox(width: 16),
+                      ElevatedButton.icon(
+                        onPressed: _disconnect,
+                        icon: const Icon(Icons.bluetooth_disabled, size: 18),
+                        label: const Text(
+                          'DESCONECTAR',
+                          style: TextStyle(
+                            fontSize: 12,
+                            letterSpacing: 1.2,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: Colors.red[800], // F-16: rojo oscuro
+                          foregroundColor: Colors.white,
+                          padding: const EdgeInsets.symmetric(
+                              horizontal: 16, vertical: 10),
+                          shape: RoundedRectangleBorder(
+                            borderRadius:
+                                BorderRadius.circular(4), // F-16: angular
+                          ),
+                        ),
+                      ),
+                    ],
+                  ],
+                ),
+              ),
+              // F-16: LISTA DE DISPOSITIVOS
+              Expanded(
+                child: _isScanning
+                    ? Center(
+                        child: CircularProgressIndicator(
+                          color: Colors.cyan[700], // F-16
+                        ),
+                      )
+                    : _devices.isEmpty
+                        ? Center(
+                            child: Column(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: [
+                                Icon(
+                                  Icons.bluetooth_searching,
+                                  size: 64,
+                                  color: Colors.grey[600], // F-16
+                                ),
+                                const SizedBox(height: 10),
+                                Text(
+                                  'NO HAY DISPOSITIVOS EMPAREJADOS',
+                                  style: TextStyle(
+                                    fontSize: 12,
+                                    color: Colors.grey[500], // F-16
+                                    letterSpacing: 1.2,
+                                  ),
+                                ),
+                                const SizedBox(height: 16),
+                                ElevatedButton.icon(
+                                  onPressed: _loadPairedDevices,
+                                  icon: const Icon(Icons.refresh, size: 18),
+                                  label: const Text(
+                                    'ACTUALIZAR',
+                                    style: TextStyle(
+                                      letterSpacing: 1.2,
+                                      fontWeight: FontWeight.bold,
+                                    ),
+                                  ),
+                                  style: ElevatedButton.styleFrom(
+                                    backgroundColor:
+                                        Colors.blueGrey[700], // F-16
+                                    foregroundColor: Colors.white,
+                                    shape: RoundedRectangleBorder(
+                                      borderRadius: BorderRadius.circular(4),
+                                    ),
+                                  ),
+                                ),
+                              ],
+                            ),
+                          )
+                        : ListView.builder(
+                            padding: const EdgeInsets.all(12),
+                            itemCount: _devices.length,
+                            itemBuilder: (context, index) {
+                              BluetoothDevice device = _devices[index];
+                              bool isCurrentDevice = _isConnected &&
+                                  _connectedDeviceName ==
+                                      (device.name ?? device.address);
+
+                              return Card(
+                                margin: const EdgeInsets.only(bottom: 8),
+                                color: Colors.grey[850], // F-16: uniforme
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(6),
+                                  side: BorderSide(
+                                    color: isCurrentDevice
+                                        ? Colors.green[
+                                            700]! // F-16: borde verde si conectado
+                                        : Colors.blueGrey[700]!,
+                                    width: isCurrentDevice ? 2 : 1,
+                                  ),
+                                ),
+                                child: ListTile(
+                                  leading: Icon(
+                                    Icons.bluetooth,
+                                    color: isCurrentDevice
+                                        ? Colors
+                                            .green[700] // F-16: verde militar
+                                        : Colors.blueGrey[
+                                            600], // F-16: azul grisáceo
+                                    size: 32,
+                                  ),
+                                  title: Text(
+                                    device.name ?? 'DISPOSITIVO SIN NOMBRE',
+                                    style: TextStyle(
+                                      fontWeight: FontWeight.bold,
+                                      color: isCurrentDevice
+                                          ? Colors.green[700]
+                                          : Colors.white,
+                                      letterSpacing: 0.5,
+                                      fontSize: 14,
+                                    ),
+                                  ),
+                                  subtitle: Text(
+                                    device.address,
+                                    style: TextStyle(
+                                      color: Colors.grey[500], // F-16
+                                      fontFamily: 'monospace',
+                                      fontSize: 12,
+                                    ),
+                                  ),
+                                  trailing: Icon(
+                                    isCurrentDevice
+                                        ? Icons.check_circle
+                                        : Icons.arrow_forward_ios,
+                                    color: isCurrentDevice
+                                        ? Colors.green[700]
+                                        : Colors.grey[600],
+                                    size: isCurrentDevice ? 24 : 18,
+                                  ),
+                                  onTap: _isConnected
+                                      ? null
+                                      : () => _connectToDevice(device),
+                                ),
+                              );
+                            },
+                          ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  @override
+  void dispose() {
+    super.dispose();
+  }
+}
