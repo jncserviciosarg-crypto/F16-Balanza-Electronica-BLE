@@ -18,19 +18,25 @@ rootProject.allprojects {
 }
 apply plugin: 'com.android.library'
 android {
+    // Determinar compile/target SDK desde Flutter si están presentes, sino usar
+    // valores por defecto compatibles.
+    def flutterCompileSdk = (project.hasProperty('flutter.compileSdkVersion')) ? project['flutter.compileSdkVersion'] as int : 33
+    def flutterBuildTools = (project.hasProperty('flutter.buildToolsVersion')) ? project['flutter.buildToolsVersion'] : '33.0.0'
+    def flutterTargetSdk = (project.hasProperty('flutter.targetSdkVersion')) ? project['flutter.targetSdkVersion'] as int : 33
+
     // Migra a valores dinámicos proporcionados por Flutter (Android 12–16 ready)
-    compileSdkVersion flutter.compileSdkVersion
-    buildToolsVersion flutter.buildToolsVersion
+    compileSdkVersion flutterCompileSdk
+    buildToolsVersion flutterBuildTools
 
     namespace 'io.github.edufolly.flutterbluetoothserial'
     compileOptions {
-        sourceCompatibility JavaVersion.VERSION_17
-        targetCompatibility JavaVersion.VERSION_17
+        sourceCompatibility JavaVersion.VERSION_1_8
+        targetCompatibility JavaVersion.VERSION_1_8
     }
     defaultConfig {
         // Ajustado a API mínima moderna segura
         minSdkVersion 21
-        targetSdkVersion flutter.targetSdkVersion
+        targetSdkVersion flutterTargetSdk
 
         // Requerido por AGP 8+
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
@@ -42,7 +48,7 @@ android {
         implementation 'androidx.appcompat:appcompat:1.3.0'
         implementation 'androidx.annotation:annotation:1.7.0'
     }
-    buildToolsVersion '30.0.3'
+    // buildToolsVersion ya definido dinámicamente arriba
 }
 
 dependencies {
