@@ -3,6 +3,7 @@ import 'dart:typed_data';
 import 'dart:io' show Platform;
 import 'package:flutter/foundation.dart';
 import 'package:flutter_bluetooth_serial/flutter_bluetooth_serial.dart';
+import 'bluetooth_adapter.dart';
 import 'package:permission_handler/permission_handler.dart';
 import 'package:device_info_plus/device_info_plus.dart';
 
@@ -12,7 +13,7 @@ class BluetoothService {
   BluetoothService._internal();
 
   BluetoothConnection? _connection;
-  final FlutterBluetoothSerial _bluetooth = FlutterBluetoothSerial.instance;
+  final BluetoothAdapter _adapter = FlutterBluetoothSerialAdapter();
 
   final StreamController<int> _adcController =
       StreamController<int>.broadcast();
@@ -96,7 +97,7 @@ class BluetoothService {
   // Obtener dispositivos emparejados
   Future<List<BluetoothDevice>> getPairedDevices() async {
     try {
-      List<BluetoothDevice> devices = await _bluetooth.getBondedDevices();
+      List<BluetoothDevice> devices = await _adapter.getBondedDevices();
       return devices;
     } catch (e) {
       debugPrint('Error obteniendo dispositivos emparejados: $e');
@@ -107,7 +108,7 @@ class BluetoothService {
   // Verificar si Bluetooth está habilitado
   Future<bool?> isBluetoothEnabled() async {
     try {
-      return await _bluetooth.isEnabled;
+      return await _adapter.isBluetoothEnabled();
     } catch (e) {
       debugPrint('Error verificando Bluetooth: $e');
       return false;
@@ -117,7 +118,7 @@ class BluetoothService {
   // Solicitar habilitar Bluetooth
   Future<bool?> requestEnable() async {
     try {
-      return await _bluetooth.requestEnable();
+      return await _adapter.requestEnable();
     } catch (e) {
       debugPrint('Error solicitando habilitar Bluetooth: $e');
       return false;
@@ -130,8 +131,8 @@ class BluetoothService {
       if (_isConnected) {
         await disconnect();
       }
-
-      _connection = await BluetoothConnection.toAddress(address);
+      final conn = await _adapter.connectToAddress(address);
+      _connection = conn;
       _isConnected = true;
       _connectionController.add(true);
 
