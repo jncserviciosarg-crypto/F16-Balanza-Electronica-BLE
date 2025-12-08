@@ -1,5 +1,5 @@
 import 'dart:async';
-import 'package:flutter_bluetooth_serial/flutter_bluetooth_serial';
+import 'package:flutter_bluetooth_serial/flutter_bluetooth_serial.dart';
 
 /// Interfaz abstracta para adaptador de Bluetooth.
 /// Permite cambiar de implementación (flutter_bluetooth_serial, flutter_blue_plus, etc.)
