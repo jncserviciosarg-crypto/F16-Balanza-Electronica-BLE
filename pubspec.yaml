@@ -13,6 +13,9 @@ dependencies:
 
   cupertino_icons: ^1.0.8
   flutter_bluetooth_serial: ^0.4.0
+  # To use a local fork for testing/migration, uncomment and point to the fork path:
+  # flutter_bluetooth_serial:
+  #   path: third_party/flutter_bluetooth_serial_fork
   shared_preferences: ^2.2.2
   path_provider: ^2.1.1
   intl: ^0.18.1
