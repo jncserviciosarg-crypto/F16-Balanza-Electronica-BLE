@@ -155,12 +155,22 @@ public abstract class BluetoothConnection
 
         /// Thread main code
         public void run() {
+            // ETAPA B5: Validate input stream before use
+            if (input == null) {
+                android.util.Log.e("BluetoothConnection", "Input stream is null, connection cannot be established");
+                onDisconnected(true);
+                return;
+            }
+
             byte[] buffer = new byte[1024];
             int bytes;
 
             while (!requestedClosing) {
                 try {
                     bytes = input.read(buffer);
+                    if (bytes < 0) {
+                        break; // EOS reached
+                    }
 
                     onRead(Arrays.copyOf(buffer, bytes));
                 } catch (IOException e) {
@@ -194,9 +204,15 @@ public abstract class BluetoothConnection
 
         /// Writes to output stream
         public void write(byte[] bytes) {
+            // ETAPA B5: Validate output stream before writing
+            if (output == null) {
+                android.util.Log.e("BluetoothConnection", "Output stream is null, cannot write data");
+                return;
+            }
             try {
                 output.write(bytes);
             } catch (IOException e) {
+                android.util.Log.e("BluetoothConnection", "Write failed: " + e.getMessage());
                 e.printStackTrace();
             }
         }
