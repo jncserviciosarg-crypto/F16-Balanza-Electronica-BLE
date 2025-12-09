@@ -140,22 +140,15 @@ public class FlutterBluetoothSerialPlugin implements FlutterPlugin, ActivityAwar
                                         if (handlerResult instanceof String) {
                                             try {
                                                 final String passkeyString = (String) handlerResult;
-                                                final byte[] passkey = passkeyString.getBytes();
-                                                Log.d(TAG, "Trying to set passkey for pairing to " + passkeyString);
-                                                device.setPin(passkey);
-                                                broadcastResult.abortBroadcast();
+                                                Log.d(TAG, "PIN pairing passkey provided by handler: " + passkeyString);
+                                                // ETAPA B2: device.setPin() is deprecated/blocked on Android 12+.
+                                                // System UI will handle PIN entry.
                                             } catch (Exception ex) {
                                                 Log.e(TAG, ex.getMessage());
                                                 ex.printStackTrace();
-                                                // @TODO , passing the error
-                                                //result.error("bond_error", "Setting passkey for pairing failed", exceptionToString(ex));
                                             }
                                         } else {
-                                            Log.d(TAG, "Manual pin pairing in progress");
-                                            //Intent intent = new Intent(BluetoothAdapter.ACTION_PAIRING_REQUEST);
-                                            //intent.putExtra(BluetoothDevice.EXTRA_DEVICE, device);
-                                            //intent.putExtra(BluetoothDevice.EXTRA_PAIRING_VARIANT, pairingVariant)
-                                            ActivityCompat.startActivity(activity, intent, null);
+                                            Log.d(TAG, "Manual pin pairing in progress - system UI will handle");
                                         }
                                         broadcastResult.finish();
                                     }
@@ -192,26 +185,21 @@ public class FlutterBluetoothSerialPlugin implements FlutterPlugin, ActivityAwar
 
                                 final BroadcastReceiver.PendingResult broadcastResult = this.goAsync();
                                 methodChannel.invokeMethod("handlePairingRequest", arguments, new MethodChannel.Result() {
-                                    @SuppressLint("MissingPermission")
                                     @Override
                                     public void success(Object handlerResult) {
                                         if (handlerResult instanceof Boolean) {
                                             try {
                                                 final boolean confirm = (Boolean) handlerResult;
-                                                Log.d(TAG, "Trying to set pairing confirmation to " + confirm + " (key: " + pairingKey + ")");
-                                                // @WARN `BLUETOOTH_PRIVILEGED` permission required, but might be
-                                                // unavailable for thrid party apps on newer versions of Androids.
-                                                device.setPairingConfirmation(confirm);
-                                                broadcastResult.abortBroadcast();
+                                                Log.d(TAG, "Pairing confirmation preference: " + confirm + " (key: " + pairingKey + ")");
+                                                // ETAPA B2: device.setPairingConfirmation() requires BLUETOOTH_PRIVILEGED,
+                                                // unavailable for third-party apps on Android 12+.
+                                                // System UI will handle confirmation.
                                             } catch (Exception ex) {
                                                 Log.e(TAG, ex.getMessage());
                                                 ex.printStackTrace();
-                                                // @TODO , passing the error
-                                                //result.error("bond_error", "Auto-confirming pass key failed", exceptionToString(ex));
                                             }
                                         } else {
-                                            Log.d(TAG, "Manual passkey confirmation pairing in progress (key: " + pairingKey + ")");
-                                            ActivityCompat.startActivity(activity, intent, null);
+                                            Log.d(TAG, "Manual passkey confirmation pairing in progress (key: " + pairingKey + ") - system UI will handle");
                                         }
                                         broadcastResult.finish();
                                     }
