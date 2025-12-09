@@ -1,60 +1,112 @@
-# Fork de flutter_bluetooth_serial
 
-## Propósito
+# `flutter_bluetooth_serial`
 
-Este directorio contiene (o contendrá) un fork local o parcheado de `flutter_bluetooth_serial` para compatibilidad con:
-- Android API 34-36
-- Flutter 3.38+
-- Kotlin 2.2+
+[![pub package](https://img.shields.io/pub/v/flutter_bluetooth_serial.svg)](https://pub.dartlang.org/packages/flutter_bluetooth_serial)
 
-## Estado Actual
+Flutter basic implementation for Classical Bluetooth (only RFCOMM for now).
 
-- **v0.4.0**: Versión original sin cambios (se usa desde pub.dev)
-- **Próxima versión**: Fork local si se necesitan parches urgentes
 
-## Cómo Usar
+## Features
 
-### Opción 1: Git Dependency (Repositorio remoto)
+The first goal of this project, started by @edufolly was making an interface for Serial Port Protocol (HC-05 Adapter). Now the plugin features:
 
-Si se crea un fork en GitHub, editar `pubspec.yaml`:
++ Adapter status monitoring,
 
++ Turning adapter on and off,
+
++ Opening settings,
+
++ Discovering devices (and requesting discoverability),
+
++ Listing bonded devices and pairing new ones,
+
++ Connecting to multiple devices at the same time,
+
++ Sending and receiving data (multiple connections).
+
+The plugin (for now) uses Serial Port profile for moving data over RFCOMM, so make sure there is running Service Discovery Protocol that points to SP/RFCOMM channel of the device. There could be [max up to 7 Bluetooth connections](https://stackoverflow.com/a/32149519/4880243).
+
+For now there is only Android support.
+
+
+## Getting Started
+
+#### Depending 
 ```yaml
+# Add dependency to `pubspec.yaml` of your project.
 dependencies:
-  flutter_bluetooth_serial:
-    git:
-      url: https://github.com/tu-usuario/flutter_bluetooth_serial.git
-      ref: android-api34-36-compat
+    # ...
+    flutter_bluetooth_serial: ^0.3.2
 ```
 
-### Opción 2: Path Dependency (Desarrollo local)
+#### Installing
 
-Para desarrollo local, descargar el fork aquí y editar `pubspec.yaml`:
-
-```yaml
-dependencies:
-  flutter_bluetooth_serial:
-    path: ./third_party/flutter_bluetooth_serial_fork
+```bash
+# With pub manager
+pub get
+# or with Flutter
+flutter pub get
 ```
 
-### Opción 3: Mantener pub.dev
+#### Importing
+```dart
+import 'package:flutter_bluetooth_serial/flutter_bluetooth_serial.dart';
+```
 
-Por ahora (STAGE 2), se mantiene la versión v0.4.0 desde pub.dev.
-La migración a `flutter_blue_plus` está preparada en `lib/services/bluetooth_adapter.dart`.
+#### Usage
 
-## Migraciones Futuras
+You should look to the Dart code of the library (mostly documented functions) or to the examples code. 
+```dart
+// Some simplest connection :F
+try {
+    BluetoothConnection connection = await BluetoothConnection.toAddress(address);
+    print('Connected to the device');
 
-1. **STAGE 3**: Crear fork de flutter_bluetooth_serial con parches para API 34+
-2. **STAGE 4**: Migrar a `flutter_blue_plus` gradualmente
-3. **STAGE 5**: Eliminar flutter_bluetooth_serial
+    connection.input.listen((Uint8List data) {
+        print('Data incoming: ${ascii.decode(data)}');
+        connection.output.add(data); // Sending data
 
-## Referencias
+        if (ascii.decode(data).contains('!')) {
+            connection.finish(); // Closing connection
+            print('Disconnecting by local host');
+        }
+    }).onDone(() {
+        print('Disconnected by remote request');
+    });
+}
+catch (exception) {
+    print('Cannot connect, exception occured');
+}
+```
 
-- Paquete original: https://pub.dev/packages/flutter_bluetooth_serial
-- Fork sugerido: https://github.com/RoyalJames/flutter_bluetooth_serial
-- Alternativa moderna: https://pub.dev/packages/flutter_blue_plus
+Note: Work is underway to make the communication easier than operations on byte streams. See #41 for discussion about the topic.
 
-## Notas de Desarrollo
+#### Examples
 
-- No modificar `bluetooth_service.dart` hasta que se decida la estrategia
-- El adaptador `bluetooth_adapter.dart` permite cambios sin romper código existente
-- Mantener backups del estado actual en `android/app/src/main/AndroidManifest.xml.bak`
+Check out [example application](example/README.md) with connections with both Arduino HC-05 and Raspberry Pi (RFCOMM) Bluetooth interfaces.
+
+Main screen and options |  Discovery and connecting  |  Simple chat with server  |  Background connection  |
+:---:|:---:|:---:|:---:|
+![](https://i.imgur.com/qeeMsVe.png)  |  ![](https://i.imgur.com/zruuelZ.png)  |  ![](https://i.imgur.com/y5mTUey.png)  |  ![](https://i.imgur.com/3wvwDVo.png)
+
+
+## To-do list
+
++ Add some utils to easier manage `BluetoothConnection` (see discussion #41),
++ Allow connection method/protocol/UUID specification,
++ Listening/server mode,
++ Recognizing and displaying `BluetoothClass` of device,
++ Maybe integration with `flutter_blue` one day ;)
+
+You might also want to check [milestones](https://github.com/edufolly/flutter_bluetooth_serial/milestones).
+
+
+## Credits
+
+- [Eduardo Folly](mailto:edufolly@gmail.com)
+- [Martin Mauch](mailto:martin.mauch@gmail.com)
+- [Patryk Ludwikowski](mailto:patryk.ludwikowski.7@gmail.com)
+
+After version 0.3.0 we have a lot of collaborators. If you would like to be credited, please send me an [email](mailto:edufolly@gmail.com).
+
+#### Thanks for all the support!

@@ -23,7 +23,8 @@ abstract class BluetoothAdapter {
 
 /// Implementación de adaptador usando flutter_bluetooth_serial
 class FlutterBluetoothSerialAdapter implements BluetoothAdapter {
-  final FlutterBluetoothSerial _flutterBluetooth = FlutterBluetoothSerial.instance;
+  final FlutterBluetoothSerial _flutterBluetooth =
+      FlutterBluetoothSerial.instance;
 
   @override
   Future<List<BluetoothDevice>> getBondedDevices() async {

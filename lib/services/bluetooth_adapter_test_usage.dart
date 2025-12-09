@@ -11,7 +11,7 @@ void demonstrateBluetoothAdapterUsage() {
   // - FlutterBluetoothSerialAdapter (actual)
   // - FlutterBluePlusAdapter (futura migración)
   // - OtherBluetoothAdapter (futuro soporte)
-  
+
   // Ejemplo de uso futuro:
   // final adapter = btAdapter.FlutterBluetoothSerialAdapter();
   // final devices = await adapter.getBondedDevices();
