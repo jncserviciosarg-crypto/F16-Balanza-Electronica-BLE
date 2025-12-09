@@ -18,7 +18,10 @@ import androidx.core.content.ContextCompat;
 
 import android.util.Log;
 import android.util.SparseArray;
-import android.os.AsyncTask;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import android.os.Handler;
+import android.os.Looper;
 
 import java.io.PrintWriter;
 import java.io.StringWriter;
@@ -77,6 +80,10 @@ public class FlutterBluetoothSerialPlugin implements FlutterPlugin, ActivityAwar
     private Activity activity;
     private BinaryMessenger messenger;
     private Context activeContext;
+
+    // Executor and main handler to replace deprecated AsyncTask and to post results on UI thread
+    private static final ExecutorService EXECUTOR = Executors.newCachedThreadPool();
+    private static final Handler MAIN_HANDLER = new Handler(Looper.getMainLooper());
 
     /// Constructs the plugin instance
     public FlutterBluetoothSerialPlugin() {
@@ -511,7 +518,7 @@ public class FlutterBluetoothSerialPlugin implements FlutterPlugin, ActivityAwar
                     self.disconnect();
 
                     // True dispose
-                    AsyncTask.execute(() -> {
+                    EXECUTOR.execute(() -> {
                         readChannel.setStreamHandler(null);
                         connections.remove(id);
 
@@ -524,7 +531,7 @@ public class FlutterBluetoothSerialPlugin implements FlutterPlugin, ActivityAwar
 
         @Override
         protected void onRead(byte[] buffer) {
-            activity.runOnUiThread(() -> {
+            MAIN_HANDLER.post(() -> {
                 if (readSink != null) {
                     readSink.success(buffer);
                 }
@@ -533,7 +540,7 @@ public class FlutterBluetoothSerialPlugin implements FlutterPlugin, ActivityAwar
 
         @Override
         protected void onDisconnected(boolean byRemote) {
-            activity.runOnUiThread(() -> {
+            MAIN_HANDLER.post(() -> {
                 if (byRemote) {
                     Log.d(TAG, "onDisconnected by remote (id: " + id + ")");
                     if (readSink != null) {
@@ -1003,12 +1010,12 @@ public class FlutterBluetoothSerialPlugin implements FlutterPlugin, ActivityAwar
 
                     Log.d(TAG, "Connecting to " + address + " (id: " + id + ")");
 
-                    AsyncTask.execute(() -> {
+                    EXECUTOR.execute(() -> {
                         try {
                             connection.connect(address);
-                            activity.runOnUiThread(() -> result.success(id));
+                            MAIN_HANDLER.post(() -> result.success(id));
                         } catch (Exception ex) {
-                            activity.runOnUiThread(() -> result.error("connect_error", ex.getMessage(), exceptionToString(ex)));
+                            MAIN_HANDLER.post(() -> result.error("connect_error", ex.getMessage(), exceptionToString(ex)));
                             connections.remove(id);
                         }
                     });
@@ -1037,22 +1044,22 @@ public class FlutterBluetoothSerialPlugin implements FlutterPlugin, ActivityAwar
 
                     if (call.hasArgument("string")) {
                         String string = call.argument("string");
-                        AsyncTask.execute(() -> {
+                        EXECUTOR.execute(() -> {
                             try {
                                 connection.write(string.getBytes());
-                                activity.runOnUiThread(() -> result.success(null));
+                                MAIN_HANDLER.post(() -> result.success(null));
                             } catch (Exception ex) {
-                                activity.runOnUiThread(() -> result.error("write_error", ex.getMessage(), exceptionToString(ex)));
+                                MAIN_HANDLER.post(() -> result.error("write_error", ex.getMessage(), exceptionToString(ex)));
                             }
                         });
                     } else if (call.hasArgument("bytes")) {
                         byte[] bytes = call.argument("bytes");
-                        AsyncTask.execute(() -> {
+                        EXECUTOR.execute(() -> {
                             try {
                                 connection.write(bytes);
-                                activity.runOnUiThread(() -> result.success(null));
+                                MAIN_HANDLER.post(() -> result.success(null));
                             } catch (Exception ex) {
-                                activity.runOnUiThread(() -> result.error("write_error", ex.getMessage(), exceptionToString(ex)));
+                                MAIN_HANDLER.post(() -> result.error("write_error", ex.getMessage(), exceptionToString(ex)));
                             }
                         });
                     } else {
