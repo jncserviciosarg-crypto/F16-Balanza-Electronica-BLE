@@ -5,6 +5,9 @@ import java.io.InputStream;
 import java.io.OutputStream;
 import java.util.UUID;
 import java.util.Arrays;
+import java.util.concurrent.Future;
+import java.util.concurrent.FutureTask;
+import java.util.concurrent.TimeUnit;
 
 import android.bluetooth.BluetoothAdapter;
 import android.bluetooth.BluetoothDevice;
@@ -14,6 +17,9 @@ import android.bluetooth.BluetoothSocket;
 public abstract class BluetoothConnection
 {
     protected static final UUID DEFAULT_UUID = UUID.fromString("00001101-0000-1000-8000-00805F9B34FB");
+    // ETAPA B4: Socket connection timeout (10 seconds) and retry mechanism
+    protected static final long SOCKET_CONNECT_TIMEOUT_MS = 10000; // 10 seconds
+    protected static final int SOCKET_CONNECT_MAX_RETRIES = 1;      // 1 retry attempt
 
     protected BluetoothAdapter bluetoothAdapter;
 
@@ -32,7 +38,6 @@ public abstract class BluetoothConnection
 
 
     // @TODO . `connect` could be done perfored on the other thread
-    // @TODO . `connect` parameter: timeout
     // @TODO . `connect` other methods than `createRfcommSocketToServiceRecord`, including hidden one raw `createRfcommSocket` (on channel).
     // @TODO ? how about turning it into factoried?
     /// Connects to given device by hardware address
@@ -46,18 +51,56 @@ public abstract class BluetoothConnection
             throw new IOException("device not found");
         }
 
-        BluetoothSocket socket = device.createRfcommSocketToServiceRecord(uuid); // @TODO . introduce ConnectionMethod
-        if (socket == null) {
-            throw new IOException("socket connection not established");
+        // ETAPA B4: Implement socket connect with timeout and retry mechanism
+        IOException lastException = null;
+        for (int attempt = 0; attempt <= SOCKET_CONNECT_MAX_RETRIES; attempt++) {
+            try {
+                BluetoothSocket socket = device.createRfcommSocketToServiceRecord(uuid);
+                if (socket == null) {
+                    throw new IOException("socket creation failed");
+                }
+
+                // Cancel discovery, even though we didn't start it
+                bluetoothAdapter.cancelDiscovery();
+
+                // Perform connect with timeout using FutureTask
+                FutureTask<Void> connectTask = new FutureTask<>(() -> {
+                    socket.connect();
+                    return null;
+                });
+                
+                Thread connectThread = new Thread(connectTask);
+                connectThread.setDaemon(true);
+                connectThread.start();
+
+                try {
+                    // Wait for socket.connect() to complete within timeout
+                    connectTask.get(SOCKET_CONNECT_TIMEOUT_MS, TimeUnit.MILLISECONDS);
+                } catch (java.util.concurrent.TimeoutException e) {
+                    connectThread.interrupt();
+                    try { socket.close(); } catch (Exception ex) {}
+                    throw new IOException("socket connect timeout after " + SOCKET_CONNECT_TIMEOUT_MS + "ms");
+                }
+
+                // Connection successful
+                connectionThread = new ConnectionThread(socket);
+                connectionThread.start();
+                return;
+
+            } catch (IOException e) {
+                lastException = e;
+                if (attempt < SOCKET_CONNECT_MAX_RETRIES) {
+                    try { Thread.sleep(500); } catch (InterruptedException ex) { Thread.currentThread().interrupt(); }
+                }
+            } catch (Exception e) {
+                lastException = new IOException("connection failed: " + e.getMessage(), e);
+                if (attempt < SOCKET_CONNECT_MAX_RETRIES) {
+                    try { Thread.sleep(500); } catch (InterruptedException ex) { Thread.currentThread().interrupt(); }
+                }
+            }
         }
 
-        // Cancel discovery, even though we didn't start it
-        bluetoothAdapter.cancelDiscovery();
-
-        socket.connect();
-
-        connectionThread = new ConnectionThread(socket);
-        connectionThread.start();
+        throw lastException != null ? lastException : new IOException("connection failed after retries");
     }
     /// Connects to given device by hardware address (default UUID used)
     public void connect(String address) throws IOException {
