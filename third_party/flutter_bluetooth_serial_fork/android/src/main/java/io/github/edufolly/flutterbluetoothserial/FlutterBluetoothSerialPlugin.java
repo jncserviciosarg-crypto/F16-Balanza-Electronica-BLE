@@ -623,34 +623,9 @@ public class FlutterBluetoothSerialPlugin implements FlutterPlugin, ActivityAwar
                                 //result.error("hidden_address", "obtaining address using Settings Secure bank failed", exceptionToString(ex));
                             }
 
-                            Log.d(TAG, "Trying to obtain address using reflection against internal Android code");
-                            try {
-                                // This will most likely work, but well, it is unsafe
-                                java.lang.reflect.Field mServiceField;
-                                mServiceField = bluetoothAdapter.getClass().getDeclaredField("mService");
-                                mServiceField.setAccessible(true);
-
-                                Object bluetoothManagerService = mServiceField.get(bluetoothAdapter);
-                                if (bluetoothManagerService == null) {
-                                    if (!bluetoothAdapter.isEnabled()) {
-                                        Log.d(TAG, "Probably failed just because adapter is disabled!");
-                                    }
-                                    throw new NullPointerException();
-                                }
-                                java.lang.reflect.Method getAddressMethod;
-                                getAddressMethod = bluetoothManagerService.getClass().getMethod("getAddress");
-                                String value = (String) getAddressMethod.invoke(bluetoothManagerService);
-                                if (value == null) {
-                                    throw new NullPointerException();
-                                }
-                                address = value;
-                                Log.d(TAG, "Probably succed: " + address + " ✨ :F");
-                                break;
-                            } catch (Exception ex) {
-                                // Ignoring failure (since it isn't critical API for most applications)
-                                Log.d(TAG, "Obtaining address using reflection against internal Android code failed");
-                                //result.error("hidden_address", "obtaining address using reflection agains internal Android code failed", exceptionToString(ex));
-                            }
+                            // ETAPA B3: Reflection to access internal mService field removed.
+                            // Using reflection on private Android APIs is unsafe and prohibited.
+                            // Will fall back to network interface lookup or return hidden MAC.
 
                             Log.d(TAG, "Trying to look up address by network interfaces - might be invalid on some devices");
                             try {
