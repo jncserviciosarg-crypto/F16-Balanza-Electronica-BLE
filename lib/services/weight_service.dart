@@ -49,11 +49,11 @@ class WeightService {
   bool _emaInitialized = false;
 
   int _trimListSize = 10;
-  int _trimRecortes = 2;
+  final int _trimRecortes = 2;
   int _windowSize = 5;
   double _emaAlpha = 0.3;
   int _updateIntervalMs = 100;
-  int _maxRawBuffer = 50;
+  final int _maxRawBuffer = 50;
 
   WeightState _currentState = WeightState.initial();
 
@@ -76,13 +76,13 @@ class WeightService {
     if (_isRunning) return;
     _isRunning = true;
 
-    _adcSubscription = _bluetoothService.adcStream.listen((adc) {
+    _adcSubscription = _bluetoothService.adcStream.listen((int adc) {
       _ultimoADC = adc;
     });
 
     _processingTimer = Timer.periodic(
       Duration(milliseconds: _updateIntervalMs),
-      (timer) => _processData(),
+      (Timer timer) => _processData(),
     );
   }
 
@@ -170,7 +170,7 @@ class WeightService {
       ..sort();
 
     if (sorted.length <= _trimRecortes * 2) {
-      return sorted.reduce((a, b) => a + b) / sorted.length;
+      return sorted.reduce((int a, int b) => a + b) / sorted.length;
     }
 
     List<int> trimmed = sorted.sublist(
@@ -180,12 +180,12 @@ class WeightService {
 
     if (trimmed.isEmpty) return sorted[sorted.length ~/ 2].toDouble();
 
-    return trimmed.reduce((a, b) => a + b) / trimmed.length;
+    return trimmed.reduce((int a, int b) => a + b) / trimmed.length;
   }
 
   double _calculateWindowAverage() {
     if (_windowBuffer.isEmpty) return 0.0;
-    double sum = _windowBuffer.reduce((a, b) => a + b);
+    double sum = _windowBuffer.reduce((double a, double b) => a + b);
     return sum / _windowBuffer.length;
   }
 
@@ -214,8 +214,8 @@ class WeightService {
   bool _detectStability() {
     if (_pesoWindowBuffer.length < _pesoWindowSize) return false;
 
-    double minPeso = _pesoWindowBuffer.reduce((a, b) => a < b ? a : b);
-    double maxPeso = _pesoWindowBuffer.reduce((a, b) => a > b ? a : b);
+    double minPeso = _pesoWindowBuffer.reduce((double a, double b) => a < b ? a : b);
+    double maxPeso = _pesoWindowBuffer.reduce((double a, double b) => a > b ? a : b);
     double span = (maxPeso - minPeso).abs();
 
     double threshold = _divisionMinima * 0.5;
@@ -312,7 +312,7 @@ class WeightService {
       _processingTimer?.cancel();
       _processingTimer = Timer.periodic(
         Duration(milliseconds: _updateIntervalMs),
-        (timer) => _processData(),
+        (Timer timer) => _processData(),
       );
     }
   }
@@ -323,7 +323,7 @@ class WeightService {
   }
 
   Future<void> restoreFactoryCalibration() async {
-    final factoryCalibration =
+    final CalibrationModel? factoryCalibration =
         await _persistenceService.loadFactoryCalibration();
     if (factoryCalibration != null) {
       setCalibration(factoryCalibration);

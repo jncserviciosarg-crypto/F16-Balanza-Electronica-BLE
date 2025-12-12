@@ -1,5 +1,6 @@
 import 'dart:convert';
 import 'dart:io';
+import 'package:f16_balanza_electronica/models/session_weight.dart';
 import 'package:flutter/foundation.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:excel/excel.dart';
@@ -47,15 +48,15 @@ class SessionHistoryService {
   /// Obtiene todas las sesiones guardadas
   Future<List<SessionModel>> getSessions() async {
     try {
-      final prefs = await SharedPreferences.getInstance();
-      final sessionIds = await _loadSessionIdsList();
-      final List<SessionModel> sessions = [];
+      final SharedPreferences prefs = await SharedPreferences.getInstance();
+      final List<String> sessionIds = await _loadSessionIdsList();
+      final List<SessionModel> sessions = <SessionModel>[];
 
       for (String id in sessionIds) {
-        final jsonString = prefs.getString('$_keySessionsPrefix$id');
+        final String? jsonString = prefs.getString('$_keySessionsPrefix$id');
         if (jsonString != null && jsonString.isNotEmpty) {
           try {
-            final session = SessionModel.fromJson(jsonString);
+            final SessionModel session = SessionModel.fromJson(jsonString);
             sessions.add(session);
           } catch (e) {
             debugPrint('Error cargando sesión $id: $e');
@@ -64,20 +65,20 @@ class SessionHistoryService {
       }
 
       // Ordenar por fecha de inicio (más recientes primero)
-      sessions.sort((a, b) => b.fechaInicio.compareTo(a.fechaInicio));
+      sessions.sort((SessionModel a, SessionModel b) => b.fechaInicio.compareTo(a.fechaInicio));
 
       return sessions;
     } catch (e) {
       debugPrint('Error obteniendo sesiones: $e');
-      return [];
+      return <SessionModel>[];
     }
   }
 
   /// Obtiene una sesión por su ID
   Future<SessionModel?> getSessionById(String id) async {
     try {
-      final prefs = await SharedPreferences.getInstance();
-      final jsonString = prefs.getString('$_keySessionsPrefix$id');
+      final SharedPreferences prefs = await SharedPreferences.getInstance();
+      final String? jsonString = prefs.getString('$_keySessionsPrefix$id');
 
       if (jsonString == null || jsonString.isEmpty) {
         return null;
@@ -93,8 +94,8 @@ class SessionHistoryService {
   /// Guarda una sesión (crear nueva o actualizar existente)
   Future<void> saveSession(SessionModel session) async {
     try {
-      final prefs = await SharedPreferences.getInstance();
-      final jsonString = session.toJson();
+      final SharedPreferences prefs = await SharedPreferences.getInstance();
+      final String jsonString = session.toJson();
 
       // Guardar la sesión
       await prefs.setString('$_keySessionsPrefix${session.id}', jsonString);
@@ -107,7 +108,7 @@ class SessionHistoryService {
         // Limitar cantidad de sesiones
         if (sessionIds.length > _maxSessions) {
           // Eliminar las más antiguas
-          final idsToRemove = sessionIds.sublist(_maxSessions);
+          final List<String> idsToRemove = sessionIds.sublist(_maxSessions);
           for (String oldId in idsToRemove) {
             await prefs.remove('$_keySessionsPrefix$oldId');
           }
@@ -125,7 +126,7 @@ class SessionHistoryService {
   /// Elimina una sesión por su ID
   Future<void> deleteSession(String id) async {
     try {
-      final prefs = await SharedPreferences.getInstance();
+      final SharedPreferences prefs = await SharedPreferences.getInstance();
 
       // Eliminar la sesión
       await prefs.remove('$_keySessionsPrefix$id');
@@ -143,8 +144,8 @@ class SessionHistoryService {
   /// Elimina todas las sesiones
   Future<void> deleteAllSessions() async {
     try {
-      final prefs = await SharedPreferences.getInstance();
-      final sessionIds = await _loadSessionIdsList();
+      final SharedPreferences prefs = await SharedPreferences.getInstance();
+      final List<String> sessionIds = await _loadSessionIdsList();
 
       // Eliminar cada sesión
       for (String id in sessionIds) {
@@ -161,15 +162,15 @@ class SessionHistoryService {
 
   /// Obtiene sesiones filtradas por tipo
   Future<List<SessionModel>> getSessionsByTipo(String tipo) async {
-    final allSessions = await getSessions();
-    return allSessions.where((s) => s.tipo == tipo).toList();
+    final List<SessionModel> allSessions = await getSessions();
+    return allSessions.where((SessionModel s) => s.tipo == tipo).toList();
   }
 
   /// Obtiene sesiones filtradas por rango de fechas
   Future<List<SessionModel>> getSessionsByDateRange(
       DateTime inicio, DateTime fin) async {
-    final allSessions = await getSessions();
-    return allSessions.where((s) {
+    final List<SessionModel> allSessions = await getSessions();
+    return allSessions.where((SessionModel s) {
       return s.fechaInicio.isAfter(inicio) && s.fechaInicio.isBefore(fin);
     }).toList();
   }
@@ -177,10 +178,10 @@ class SessionHistoryService {
   /// Obtiene estadísticas de las sesiones
   Future<Map<String, dynamic>> getEstadisticas() async {
     try {
-      final sessions = await getSessions();
+      final List<SessionModel> sessions = await getSessions();
 
       if (sessions.isEmpty) {
-        return {
+        return <String, dynamic>{
           'totalSesiones': 0,
           'totalCargas': 0,
           'totalDescargas': 0,
@@ -194,7 +195,7 @@ class SessionHistoryService {
       double pesoTotalCargas = 0.0;
       double pesoTotalDescargas = 0.0;
 
-      for (var session in sessions) {
+      for (SessionModel session in sessions) {
         if (session.tipo == 'carga') {
           totalCargas++;
           pesoTotalCargas += session.pesoNeto;
@@ -204,7 +205,7 @@ class SessionHistoryService {
         }
       }
 
-      return {
+      return <String, dynamic>{
         'totalSesiones': sessions.length,
         'totalCargas': totalCargas,
         'totalDescargas': totalDescargas,
@@ -214,7 +215,7 @@ class SessionHistoryService {
       };
     } catch (e) {
       debugPrint('Error obteniendo estadísticas: $e');
-      return {};
+      return <String, dynamic>{};
     }
   }
 
@@ -253,9 +254,9 @@ class SessionHistoryService {
       csv.writeln('Número,Fecha,Hora,Peso (kg)');
 
       int contador = 1;
-      for (var pesada in session.pesadas) {
-        final fecha = pesada.fechaHora.toIso8601String().split('T')[0];
-        final hora =
+      for (SessionWeight pesada in session.pesadas) {
+        final String fecha = pesada.fechaHora.toIso8601String().split('T')[0];
+        final String hora =
             pesada.fechaHora.toIso8601String().split('T')[1].split('.')[0];
         csv.writeln('$contador,$fecha,$hora,${_formatPeso(pesada.peso)}');
         contador++;
@@ -271,7 +272,7 @@ class SessionHistoryService {
   /// Exporta todas las sesiones a formato CSV
   Future<String> exportAllSessionsToCsv() async {
     try {
-      final sessions = await getSessions();
+      final List<SessionModel> sessions = await getSessions();
       StringBuffer csv = StringBuffer();
 
       csv.writeln('HISTORIAL DE SESIONES');
@@ -279,14 +280,14 @@ class SessionHistoryService {
       csv.writeln(
           'ID,Tipo,Fecha Inicio,Hora Inicio,Fecha Fin,Hora Fin,Patente,Producto,Chofer,Peso Inicial (kg),Peso Final (kg),Peso Neto (kg),Cantidad Pesadas');
 
-      for (var session in sessions) {
-        final fechaInicio = session.fechaInicio.toIso8601String().split('T')[0];
-        final horaInicio =
+      for (SessionModel session in sessions) {
+        final String fechaInicio = session.fechaInicio.toIso8601String().split('T')[0];
+        final String horaInicio =
             session.fechaInicio.toIso8601String().split('T')[1].split('.')[0];
-        final fechaFin = session.fechaFin != null
+        final String fechaFin = session.fechaFin != null
             ? session.fechaFin!.toIso8601String().split('T')[0]
             : '';
-        final horaFin = session.fechaFin != null
+        final String horaFin = session.fechaFin != null
             ? session.fechaFin!.toIso8601String().split('T')[1].split('.')[0]
             : '';
 
@@ -304,17 +305,17 @@ class SessionHistoryService {
   /// Carga la lista de IDs de sesiones
   Future<List<String>> _loadSessionIdsList() async {
     try {
-      final prefs = await SharedPreferences.getInstance();
-      final jsonString = prefs.getString(_keySessionsList);
+      final SharedPreferences prefs = await SharedPreferences.getInstance();
+      final String? jsonString = prefs.getString(_keySessionsList);
 
       if (jsonString == null || jsonString.isEmpty) {
-        return [];
+        return <String>[];
       }
 
       return List<String>.from(jsonDecode(jsonString));
     } catch (e) {
       debugPrint('Error cargando lista de IDs de sesiones: $e');
-      return [];
+      return <String>[];
     }
   }
 
@@ -323,17 +324,17 @@ class SessionHistoryService {
   Future<String> exportSessionToXlsx(SessionModel session) async {
     try {
       // Crear workbook
-      final excel = Excel.createExcel();
+      final Excel excel = Excel.createExcel();
       // Eliminar hoja inicial vacía (Sheet1 u hoja por defecto)
       try {
-        final defaultSheet = excel.getDefaultSheet();
+        final String? defaultSheet = excel.getDefaultSheet();
         if (defaultSheet != null && defaultSheet != 'Sesion') {
           excel.delete(defaultSheet);
         }
       } catch (_) {
         // Silencioso: si la API difiere, ignorar
       }
-      final sheet = excel['Sesion'];
+      final Sheet sheet = excel['Sesion'];
 
       // ═══════════════════════════════════════════════════════════
       // INFORMACIÓN GENERAL (Filas 1-10)
@@ -341,7 +342,7 @@ class SessionHistoryService {
       int currentRow = 0;
 
       // Título principal
-      var titleCell = sheet.cell(
+      Data titleCell = sheet.cell(
           CellIndex.indexByColumnRow(columnIndex: 0, rowIndex: currentRow));
       titleCell.value = 'SESIÓN DE PESAJE';
       titleCell.cellStyle = CellStyle(
@@ -357,18 +358,18 @@ class SessionHistoryService {
       _addDataRow(sheet, currentRow++, 'ID:', session.id);
 
       // Fecha y hora de inicio
-      final fechaInicio =
+      final String fechaInicio =
           '${session.fechaInicio.day.toString().padLeft(2, '0')}/${session.fechaInicio.month.toString().padLeft(2, '0')}/${session.fechaInicio.year}';
-      final horaInicio =
+      final String horaInicio =
           '${session.fechaInicio.hour.toString().padLeft(2, '0')}:${session.fechaInicio.minute.toString().padLeft(2, '0')}:${session.fechaInicio.second.toString().padLeft(2, '0')}';
       _addDataRow(sheet, currentRow++, 'Fecha Inicio:', fechaInicio);
       _addDataRow(sheet, currentRow++, 'Hora Inicio:', horaInicio);
 
       // Fecha y hora de fin (si existe)
       if (session.fechaFin != null) {
-        final fechaFin =
+        final String fechaFin =
             '${session.fechaFin!.day.toString().padLeft(2, '0')}/${session.fechaFin!.month.toString().padLeft(2, '0')}/${session.fechaFin!.year}';
-        final horaFin =
+        final String horaFin =
             '${session.fechaFin!.hour.toString().padLeft(2, '0')}:${session.fechaFin!.minute.toString().padLeft(2, '0')}:${session.fechaFin!.second.toString().padLeft(2, '0')}';
         _addDataRow(sheet, currentRow++, 'Fecha Fin:', fechaFin);
         _addDataRow(sheet, currentRow++, 'Hora Fin:', horaFin);
@@ -402,12 +403,12 @@ class SessionHistoryService {
       // ═══════════════════════════════════════════════════════════
       // TABLA DE PESADAS (desde fila 12 aprox)
       // ═══════════════════════════════════════════════════════════
-      final headerRow = currentRow;
+      final int headerRow = currentRow;
 
       // Encabezados de tabla
-      final headers = ['Nº', 'Fecha', 'Hora', 'Peso (kg)'];
+      final List<String> headers = <String>['Nº', 'Fecha', 'Hora', 'Peso (kg)'];
       for (int col = 0; col < headers.length; col++) {
-        var cell = sheet.cell(
+        Data cell = sheet.cell(
             CellIndex.indexByColumnRow(columnIndex: col, rowIndex: headerRow));
         cell.value = headers[col];
         cell.cellStyle = CellStyle(
@@ -420,10 +421,10 @@ class SessionHistoryService {
 
       // Datos de pesadas
       for (int i = 0; i < session.pesadas.length; i++) {
-        final pesada = session.pesadas[i];
-        final fecha =
+        final SessionWeight pesada = session.pesadas[i];
+        final String fecha =
             '${pesada.fechaHora.day.toString().padLeft(2, '0')}/${pesada.fechaHora.month.toString().padLeft(2, '0')}/${pesada.fechaHora.year}';
-        final hora =
+        final String hora =
             '${pesada.fechaHora.hour.toString().padLeft(2, '0')}:${pesada.fechaHora.minute.toString().padLeft(2, '0')}:${pesada.fechaHora.second.toString().padLeft(2, '0')}';
 
         sheet
@@ -454,17 +455,17 @@ class SessionHistoryService {
       } catch (_) {
         // Fallback manual simple si no existe setColAutoFit: calcular ancho aproximado
         try {
-          final Map<int, int> maxLen = {};
-          for (final row in sheet.rows) {
+          final Map<int, int> maxLen = <int, int>{};
+          for (final List<Data?> row in sheet.rows) {
             for (int c = 0; c < row.length && c <= 3; c++) {
-              final val = row[c]?.value?.toString() ?? '';
+              final String val = row[c]?.value?.toString() ?? '';
               maxLen[c] = (maxLen[c] ?? 0).clamp(0, 100);
               if (val.length > (maxLen[c] ?? 0)) {
                 maxLen[c] = val.length;
               }
             }
           }
-          maxLen.forEach((col, len) {
+          maxLen.forEach((int col, int len) {
             // Aproximar ancho: cada carácter ~1 unidad (ajustar si la lib requiere otra métrica)
             sheet.setColWidth(col, (len + 2).toDouble());
           });
@@ -474,12 +475,12 @@ class SessionHistoryService {
       // ═══════════════════════════════════════════════════════════
       // GUARDAR ARCHIVO
       // ═══════════════════════════════════════════════════════════
-      final directory = await getTemporaryDirectory();
-      final filePath = '${directory.path}/session_${session.id}.xlsx';
-      final file = File(filePath);
+      final Directory directory = await getTemporaryDirectory();
+      final String filePath = '${directory.path}/session_${session.id}.xlsx';
+      final File file = File(filePath);
 
       // Codificar y escribir
-      final bytes = excel.encode();
+      final List<int>? bytes = excel.encode();
       if (bytes != null) {
         await file.writeAsBytes(bytes);
       } else {
@@ -501,21 +502,21 @@ class SessionHistoryService {
   Future<String> exportAllSessionsToXlsxMultiSheet(
       List<SessionModel> sessions) async {
     try {
-      final excel = Excel.createExcel();
+      final Excel excel = Excel.createExcel();
 
       // Eliminar hoja por defecto
       try {
-        final defaultSheet = excel.getDefaultSheet();
+        final String? defaultSheet = excel.getDefaultSheet();
         if (defaultSheet != null) {
           excel.delete(defaultSheet);
         }
       } catch (_) {}
 
       // Separar sesiones por tipo
-      final cargas =
-          sessions.where((s) => s.tipo.toLowerCase() == 'carga').toList();
-      final descargas =
-          sessions.where((s) => s.tipo.toLowerCase() == 'descarga').toList();
+      final List<SessionModel> cargas =
+          sessions.where((SessionModel s) => s.tipo.toLowerCase() == 'carga').toList();
+      final List<SessionModel> descargas =
+          sessions.where((SessionModel s) => s.tipo.toLowerCase() == 'descarga').toList();
 
       // Crear las 3 hojas
       _createSessionsSheet(excel, 'Todas las Sesiones', sessions);
@@ -523,12 +524,12 @@ class SessionHistoryService {
       _createSessionsSheet(excel, 'Descargas', descargas);
 
       // Guardar archivo
-      final directory = await getTemporaryDirectory();
-      final timestamp = DateTime.now().millisecondsSinceEpoch;
-      final filePath = '${directory.path}/todas_sesiones_$timestamp.xlsx';
-      final file = File(filePath);
+      final Directory directory = await getTemporaryDirectory();
+      final int timestamp = DateTime.now().millisecondsSinceEpoch;
+      final String filePath = '${directory.path}/todas_sesiones_$timestamp.xlsx';
+      final File file = File(filePath);
 
-      final bytes = excel.encode();
+      final List<int>? bytes = excel.encode();
       if (bytes != null) {
         await file.writeAsBytes(bytes);
       } else {
@@ -551,27 +552,27 @@ class SessionHistoryService {
   Future<String> exportAllSessionsToXlsx() async {
     try {
       // Obtener todas las sesiones
-      final sessions = await getSessions();
+      final List<SessionModel> sessions = await getSessions();
 
       if (sessions.isEmpty) {
         throw Exception('No hay sesiones para exportar');
       }
 
-      final excel = Excel.createExcel();
+      final Excel excel = Excel.createExcel();
 
       // Eliminar hoja por defecto
       try {
-        final defaultSheet = excel.getDefaultSheet();
+        final String? defaultSheet = excel.getDefaultSheet();
         if (defaultSheet != null) {
           excel.delete(defaultSheet);
         }
       } catch (_) {}
 
       // Separar sesiones por tipo
-      final cargas =
-          sessions.where((s) => s.tipo.toLowerCase() == 'carga').toList();
-      final descargas =
-          sessions.where((s) => s.tipo.toLowerCase() == 'descarga').toList();
+      final List<SessionModel> cargas =
+          sessions.where((SessionModel s) => s.tipo.toLowerCase() == 'carga').toList();
+      final List<SessionModel> descargas =
+          sessions.where((SessionModel s) => s.tipo.toLowerCase() == 'descarga').toList();
 
       // Crear las 4 hojas
       _createSessionsSheet(excel, 'Sesiones', sessions);
@@ -580,19 +581,19 @@ class SessionHistoryService {
       _createPesadasDetalleSheet(excel, 'Pesadas Detalle', sessions);
 
       // Guardar archivo
-      final directory = await getTemporaryDirectory();
-      final now = DateTime.now();
-      final formatted =
+      final Directory directory = await getTemporaryDirectory();
+      final DateTime now = DateTime.now();
+      final String formatted =
           '${now.year}'
           '${now.month.toString().padLeft(2, '0')}'
           '${now.day.toString().padLeft(2, '0')}'
           '${now.hour.toString().padLeft(2, '0')}'
           '${now.minute.toString().padLeft(2, '0')}'
           '${now.second.toString().padLeft(2, '0')}';
-      final filePath = '${directory.path}/export_completo_$formatted.xlsx';
-      final file = File(filePath);
+      final String filePath = '${directory.path}/export_completo_$formatted.xlsx';
+      final File file = File(filePath);
 
-      final bytes = excel.encode();
+      final List<int>? bytes = excel.encode();
       if (bytes != null) {
         await file.writeAsBytes(bytes);
       } else {
@@ -610,10 +611,10 @@ class SessionHistoryService {
   /// Helper para crear la hoja de Pesadas Detalle (Ejemplo 3 - Matriz completa)
   void _createPesadasDetalleSheet(
       Excel excel, String sheetName, List<SessionModel> sessions) {
-    final sheet = excel[sheetName];
+    final Sheet sheet = excel[sheetName];
 
     // Encabezados
-    final headers = [
+    final List<String> headers = <String>[
       'ID Sesión',
       'Tipo',
       'Patente',
@@ -629,7 +630,7 @@ class SessionHistoryService {
     ];
 
     for (int col = 0; col < headers.length; col++) {
-      var cell =
+      Data cell =
           sheet.cell(CellIndex.indexByColumnRow(columnIndex: col, rowIndex: 0));
       cell.value = headers[col];
       cell.cellStyle = CellStyle(
@@ -641,22 +642,22 @@ class SessionHistoryService {
 
     // Datos: cada pesada es una fila con toda la info de sesión repetida
     int currentRow = 1;
-    for (final session in sessions) {
-      final fechaInicioSesion =
+    for (final SessionModel session in sessions) {
+      final String fechaInicioSesion =
           '${session.fechaInicio.day.toString().padLeft(2, '0')}/${session.fechaInicio.month.toString().padLeft(2, '0')}/${session.fechaInicio.year}';
-      final horaInicioSesion =
+      final String horaInicioSesion =
           '${session.fechaInicio.hour.toString().padLeft(2, '0')}:${session.fechaInicio.minute.toString().padLeft(2, '0')}:${session.fechaInicio.second.toString().padLeft(2, '0')}';
 
       for (int i = 0; i < session.pesadas.length; i++) {
-        final pesada = session.pesadas[i];
+        final SessionWeight pesada = session.pesadas[i];
 
-        final fechaPesada =
+        final String fechaPesada =
             '${pesada.fechaHora.day.toString().padLeft(2, '0')}/${pesada.fechaHora.month.toString().padLeft(2, '0')}/${pesada.fechaHora.year}';
-        final horaPesada =
+        final String horaPesada =
             '${pesada.fechaHora.hour.toString().padLeft(2, '0')}:${pesada.fechaHora.minute.toString().padLeft(2, '0')}:${pesada.fechaHora.second.toString().padLeft(2, '0')}';
 
         // Nota: usar nota de sesión (las pesadas no tienen nota individual en el modelo actual)
-        final nota = session.notas ?? '';
+        final String nota = session.notas ?? '';
 
         sheet
             .cell(CellIndex.indexByColumnRow(
@@ -729,10 +730,10 @@ class SessionHistoryService {
   /// Helper para crear una hoja con el listado de sesiones
   void _createSessionsSheet(
       Excel excel, String sheetName, List<SessionModel> sessions) {
-    final sheet = excel[sheetName];
+    final Sheet sheet = excel[sheetName];
 
     // Encabezados
-    final headers = [
+    final List<String> headers = <String>[
       'ID Sesión',
       'Tipo',
       'Patente',
@@ -746,7 +747,7 @@ class SessionHistoryService {
     ];
 
     for (int col = 0; col < headers.length; col++) {
-      var cell =
+      Data cell =
           sheet.cell(CellIndex.indexByColumnRow(columnIndex: col, rowIndex: 0));
       cell.value = headers[col];
       cell.cellStyle = CellStyle(
@@ -758,12 +759,12 @@ class SessionHistoryService {
 
     // Datos
     for (int i = 0; i < sessions.length; i++) {
-      final session = sessions[i];
-      final row = i + 1;
+      final SessionModel session = sessions[i];
+      final int row = i + 1;
 
-      final fecha =
+      final String fecha =
           '${session.fechaInicio.day.toString().padLeft(2, '0')}/${session.fechaInicio.month.toString().padLeft(2, '0')}/${session.fechaInicio.year}';
-      final hora =
+      final String hora =
           '${session.fechaInicio.hour.toString().padLeft(2, '0')}:${session.fechaInicio.minute.toString().padLeft(2, '0')}:${session.fechaInicio.second.toString().padLeft(2, '0')}';
 
       sheet
@@ -816,12 +817,12 @@ class SessionHistoryService {
   /// Helper para agregar fila de datos (label + valor)
   void _addDataRow(Sheet sheet, int row, String label, String value,
       {bool bold = false}) {
-    var labelCell =
+    Data labelCell =
         sheet.cell(CellIndex.indexByColumnRow(columnIndex: 0, rowIndex: row));
     labelCell.value = label;
     labelCell.cellStyle = CellStyle(bold: true);
 
-    var valueCell =
+    Data valueCell =
         sheet.cell(CellIndex.indexByColumnRow(columnIndex: 1, rowIndex: row));
     valueCell.value = value;
     if (bold) {
@@ -835,32 +836,32 @@ class SessionHistoryService {
   ///   printing: ^5.11.0 (opcional si se quiere imprimir/preview)
   /// No modifica ni interactúa con otras funciones existentes.
   Future<String> exportSessionToPdf(SessionModel session) async {
-    final tipo = session.tipo;
-    final id = session.id;
-    final inicio = session.fechaInicio;
-    final patente = session.patente ?? '-';
-    final producto = session.producto ?? '-';
-    final chofer = session.chofer ?? '-';
-    final notasValor = session.notas ??
+    final String tipo = session.tipo;
+    final String id = session.id;
+    final DateTime inicio = session.fechaInicio;
+    final String patente = session.patente ?? '-';
+    final String producto = session.producto ?? '-';
+    final String chofer = session.chofer ?? '-';
+    final String notasValor = session.notas ??
         '-'; // Retenido aunque no se imprime según formato exacto
     _padLine('Notas',
         notasValor); // Uso intencional para evitar warning sin alterar salida
 
-    final fechaInicioStr =
+    final String fechaInicioStr =
         '${inicio.day.toString().padLeft(2, '0')}/${inicio.month.toString().padLeft(2, '0')}/${inicio.year}';
-    final horaInicioStr =
+    final String horaInicioStr =
         '${inicio.hour.toString().padLeft(2, '0')}:${inicio.minute.toString().padLeft(2, '0')}:${inicio.second.toString().padLeft(2, '0')}';
 
-    final pesoTotalPesadasStr = _formatPeso(session.pesoTotal);
-    final cantidadPesadasStr = session.cantidadPesadas.toString();
+    final String pesoTotalPesadasStr = _formatPeso(session.pesoTotal);
+    final String cantidadPesadasStr = session.cantidadPesadas.toString();
 
-    const labelWidth = 13; // Longitud de 'Fecha Inicio:'
+    const int labelWidth = 13; // Longitud de 'Fecha Inicio:'
 //    String line(String label, String value) =>
 //        label.padRight(labelWidth) + ' ' + value;
     String line(String label, String value) =>
         '${label.padRight(labelWidth)} $value';
 
-    final buffer = StringBuffer();
+    final StringBuffer buffer = StringBuffer();
     buffer.writeln('SESIÓN DE PESAJE');
     buffer.writeln('');
     buffer.writeln(line('Tipo:', tipo));
@@ -878,27 +879,27 @@ class SessionHistoryService {
     buffer.writeln('Tabla:');
     buffer.writeln('Nº | Fecha | Hora | Peso (kg)');
     for (int i = 0; i < session.pesadas.length; i++) {
-      final p = session.pesadas[i];
-      final fecha =
+      final SessionWeight p = session.pesadas[i];
+      final String fecha =
           '${p.fechaHora.day.toString().padLeft(2, '0')}/${p.fechaHora.month.toString().padLeft(2, '0')}/${p.fechaHora.year}';
-      final hora =
+      final String hora =
           '${p.fechaHora.hour.toString().padLeft(2, '0')}:${p.fechaHora.minute.toString().padLeft(2, '0')}:${p.fechaHora.second.toString().padLeft(2, '0')}';
-      final pesoStr = _formatPeso(p.peso);
-      final numeroCol = (i + 1).toString().padRight(2);
-      final fechaCol = fecha.padRight(10);
-      final horaCol = hora.padRight(8);
-      final pesoCol = pesoStr.padLeft(8);
+      final String pesoStr = _formatPeso(p.peso);
+      final String numeroCol = (i + 1).toString().padRight(2);
+      final String fechaCol = fecha.padRight(10);
+      final String horaCol = hora.padRight(8);
+      final String pesoCol = pesoStr.padLeft(8);
       buffer.writeln('$numeroCol | $fechaCol | $horaCol | $pesoCol');
     }
-    final doc = pw.Document();
+    final pw.Document doc = pw.Document();
     doc.addPage(
       pw.Page(
         pageFormat: PdfPageFormat.a4,
         margin: const pw.EdgeInsets.all(24),
-        build: (context) {
+        build: (pw.Context context) {
           return pw.Column(
             crossAxisAlignment: pw.CrossAxisAlignment.start,
-            children: [
+            children: <pw.Widget>[
               // TÍTULO
               pw.Text(
                 'SESIÓN DE PESAJE',
@@ -919,7 +920,7 @@ class SessionHistoryService {
                 ),
                 child: pw.Column(
                   crossAxisAlignment: pw.CrossAxisAlignment.start,
-                  children: [
+                  children: <pw.Widget>[
                     pw.Text('Tipo: $tipo'),
                     pw.Text('ID: $id'),
                     pw.Text('Fecha Inicio: $fechaInicioStr'),
@@ -944,7 +945,7 @@ class SessionHistoryService {
 
               pw.Row(
                 mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
-                children: [
+                children: <pw.Widget>[
                   pw.Text('Total Pesadas: $pesoTotalPesadasStr kg'),
                   pw.Text('Cantidad: $cantidadPesadasStr'),
                 ],
@@ -962,17 +963,17 @@ class SessionHistoryService {
 
               pw.Table(
                 border: pw.TableBorder.all(color: PdfColors.grey),
-                columnWidths: {
+                columnWidths: <int, pw.TableColumnWidth>{
                   0: const pw.FixedColumnWidth(40),
                   1: const pw.FixedColumnWidth(80),
                   2: const pw.FixedColumnWidth(80),
                   3: const pw.FlexColumnWidth(),
                 },
-                children: [
+                children: <pw.TableRow>[
                   // ENCABEZADO DE TABLA
                   pw.TableRow(
                     decoration: const pw.BoxDecoration(color: PdfColors.grey300),
-                    children: [
+                    children: <pw.Widget>[
                       pw.Padding(
                         padding: const pw.EdgeInsets.all(6),
                         child: pw.Text('Nº',
@@ -998,18 +999,18 @@ class SessionHistoryService {
                   ),
 
                   // FILAS
-                  ...session.pesadas.asMap().entries.map((entry) {
-                    final i = entry.key;
-                    final p = entry.value;
+                  ...session.pesadas.asMap().entries.map((MapEntry<int, SessionWeight> entry) {
+                    final int i = entry.key;
+                    final SessionWeight p = entry.value;
 
-                    final fecha =
+                    final String fecha =
                         '${p.fechaHora.day.toString().padLeft(2, '0')}/${p.fechaHora.month.toString().padLeft(2, '0')}/${p.fechaHora.year}';
-                    final hora =
+                    final String hora =
                         '${p.fechaHora.hour.toString().padLeft(2, '0')}:${p.fechaHora.minute.toString().padLeft(2, '0')}:${p.fechaHora.second.toString().padLeft(2, '0')}';
-                    final pesoStr = _formatPeso(p.peso);
+                    final String pesoStr = _formatPeso(p.peso);
 
                     return pw.TableRow(
-                      children: [
+                      children: <pw.Widget>[
                         pw.Padding(
                           padding: const pw.EdgeInsets.all(6),
                           child: pw.Text('${i + 1}'),
@@ -1040,24 +1041,24 @@ class SessionHistoryService {
       ),
     );
 
-    final directory = await getTemporaryDirectory();
+    final Directory directory = await getTemporaryDirectory();
     // El ID ya incluye timestamp, no necesitamos dateStamp adicional
-    final filePath = '${directory.path}/session_$id.pdf';
-    final file = File(filePath);
-    final bytes = await doc.save();
+    final String filePath = '${directory.path}/session_$id.pdf';
+    final File file = File(filePath);
+    final Uint8List bytes = await doc.save();
     await file.writeAsBytes(bytes, flush: true);
     return filePath;
   }
 
   Future<void> sharePdf(String path) async {
-    await Share.shareXFiles([XFile(path)], text: 'Sesión de pesaje');
+    await Share.shareXFiles(<XFile>[XFile(path)], text: 'Sesión de pesaje');
   }
 
   // Helper interno para alinear etiqueta y valor (sin afectar otras funciones)
   String _padLine(String label, String value) {
     // ancho fijo para etiqueta (18) luego valor
-    const labelWidth = 18;
-    final paddedLabel = label.padRight(labelWidth);
+    const int labelWidth = 18;
+    final String paddedLabel = label.padRight(labelWidth);
     return '$paddedLabel$value';
   }
 }

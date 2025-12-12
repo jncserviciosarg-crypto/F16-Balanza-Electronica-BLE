@@ -30,7 +30,7 @@ class CalibrationModel {
   }
 
   Map<String, dynamic> toMap() {
-    return {
+    return <String, dynamic>{
       'offset': offset,
       'adcReferencia': adcReferencia,
       'pesoPatron': pesoPatron,

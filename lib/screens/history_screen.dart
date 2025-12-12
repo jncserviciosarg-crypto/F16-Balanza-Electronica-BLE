@@ -1,3 +1,6 @@
+import 'dart:typed_data';
+
+import 'package:f16_balanza_electronica/models/session_weight.dart';
 import 'package:flutter/material.dart';
 import 'package:share_plus/share_plus.dart';
 import '../models/session_model.dart';
@@ -15,9 +18,9 @@ class HistoryScreen extends StatefulWidget {
 class _HistoryScreenState extends State<HistoryScreen> {
   final SessionHistoryService _service = SessionHistoryService();
   final WeightService _weightService = WeightService();
-  final _screenshotKey = GlobalKey();
-  List<SessionModel> _allSessions = [];
-  List<SessionModel> _filteredSessions = [];
+  final GlobalKey<State<StatefulWidget>> _screenshotKey = GlobalKey();
+  List<SessionModel> _allSessions = <SessionModel>[];
+  List<SessionModel> _filteredSessions = <SessionModel>[];
   String? _selectedFilter; // null | 'carga' | 'descarga'
   bool _isLoading = true;
 
@@ -49,7 +52,7 @@ class _HistoryScreenState extends State<HistoryScreen> {
       _isLoading = true;
     });
 
-    final sessions = await _service.getSessions();
+    final List<SessionModel> sessions = await _service.getSessions();
 
     setState(() {
       _allSessions = sessions;
@@ -63,7 +66,7 @@ class _HistoryScreenState extends State<HistoryScreen> {
       _filteredSessions = _allSessions;
     } else {
       _filteredSessions =
-          _allSessions.where((s) => s.tipo == _selectedFilter).toList();
+          _allSessions.where((SessionModel s) => s.tipo == _selectedFilter).toList();
     }
   }
 
@@ -78,9 +81,9 @@ class _HistoryScreenState extends State<HistoryScreen> {
     try {
       _showSnackBar('Generando XLSX completo...', Colors.blue);
 
-      final filePath = await _service.exportAllSessionsToXlsx();
+      final String filePath = await _service.exportAllSessionsToXlsx();
 
-      await Share.shareXFiles([XFile(filePath)],
+      await Share.shareXFiles(<XFile>[XFile(filePath)],
           text: 'Exportación completa de sesiones con detalle de pesadas');
 
       _showSnackBar('XLSX compartido exitosamente', Colors.green);
@@ -93,7 +96,7 @@ class _HistoryScreenState extends State<HistoryScreen> {
   void _viewSessionDetails(SessionModel session) {
     showDialog(
       context: context,
-      builder: (context) => AlertDialog(
+      builder: (BuildContext context) => AlertDialog(
         backgroundColor: Colors.grey[900], // F-16: fondo oscuro
         title: Text(
           '${session.tipo.toUpperCase()} - SESIÓN ${session.id}',
@@ -107,7 +110,7 @@ class _HistoryScreenState extends State<HistoryScreen> {
           child: Column(
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
+            children: <Widget>[
               _buildDetailRow('Tipo', session.tipo.toUpperCase()),
               _buildDetailRow('Fecha Inicio',
                   '${session.fechaInicio.day.toString().padLeft(2, '0')}/${session.fechaInicio.month.toString().padLeft(2, '0')}/${session.fechaInicio.year}'),
@@ -136,10 +139,10 @@ class _HistoryScreenState extends State<HistoryScreen> {
                 ),
               ),
               const SizedBox(height: 8),
-              ...session.pesadas.asMap().entries.map((entry) {
-                final index = entry.key + 1;
-                final pesada = entry.value;
-                final fecha =
+              ...session.pesadas.asMap().entries.map((MapEntry<int, SessionWeight> entry) {
+                final int index = entry.key + 1;
+                final SessionWeight pesada = entry.value;
+                final String fecha =
                     '${pesada.fechaHora.day.toString().padLeft(2, '0')}/${pesada.fechaHora.month.toString().padLeft(2, '0')} ${pesada.fechaHora.hour.toString().padLeft(2, '0')}:${pesada.fechaHora.minute.toString().padLeft(2, '0')}';
                 return Padding(
                   padding: const EdgeInsets.only(bottom: 4),
@@ -152,7 +155,7 @@ class _HistoryScreenState extends State<HistoryScreen> {
             ],
           ),
         ),
-        actions: [
+        actions: <Widget>[
           TextButton(
             onPressed: () => Navigator.pop(context),
             child: Text(
@@ -174,7 +177,7 @@ class _HistoryScreenState extends State<HistoryScreen> {
       padding: const EdgeInsets.only(bottom: 8),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
+        children: <Widget>[
           SizedBox(
             width: 120,
             child: Text(
@@ -198,9 +201,9 @@ class _HistoryScreenState extends State<HistoryScreen> {
 
   Future<void> _exportSingleSessionToPdf(SessionModel session) async {
     try {
-      final filePath = await _service.exportSessionToPdf(session);
-      final file = XFile(filePath);
-      await Share.shareXFiles([file], text: 'Sesión ${session.id}');
+      final String filePath = await _service.exportSessionToPdf(session);
+      final XFile file = XFile(filePath);
+      await Share.shareXFiles(<XFile>[file], text: 'Sesión ${session.id}');
       _showSnackBar('PDF compartido', Colors.green);
     } catch (e) {
       _showSnackBar('Error al exportar PDF: $e', Colors.red);
@@ -209,9 +212,9 @@ class _HistoryScreenState extends State<HistoryScreen> {
 
   // F-16: DIÁLOGO DE CONFIRMACIÓN BORRAR TODO
   Future<void> _handleClearAll() async {
-    final confirmed = await showDialog<bool>(
+    final bool? confirmed = await showDialog<bool>(
       context: context,
-      builder: (context) => AlertDialog(
+      builder: (BuildContext context) => AlertDialog(
         backgroundColor: Colors.grey[900], // F-16
         title: const Text(
           'CONFIRMAR ELIMINACIÓN',
@@ -225,7 +228,7 @@ class _HistoryScreenState extends State<HistoryScreen> {
           '¿Está seguro de eliminar todos los registros?',
           style: TextStyle(color: Colors.grey[300]),
         ),
-        actions: [
+        actions: <Widget>[
           TextButton(
             onPressed: () => Navigator.pop(context, false),
             child: Text(
@@ -258,9 +261,9 @@ class _HistoryScreenState extends State<HistoryScreen> {
 
   // F-16: DIÁLOGO DE CONFIRMACIÓN ELIMINAR SESIÓN
   Future<void> _handleDeleteSession(String id) async {
-    final confirmed = await showDialog<bool>(
+    final bool? confirmed = await showDialog<bool>(
       context: context,
-      builder: (context) => AlertDialog(
+      builder: (BuildContext context) => AlertDialog(
         backgroundColor: Colors.grey[900], // F-16
         title: const Text(
           'CONFIRMAR ELIMINACIÓN',
@@ -274,7 +277,7 @@ class _HistoryScreenState extends State<HistoryScreen> {
           '¿Eliminar esta sesión?',
           style: TextStyle(color: Colors.grey[300]),
         ),
-        actions: [
+        actions: <Widget>[
           TextButton(
             onPressed: () => Navigator.pop(context, false),
             child: Text(
@@ -339,7 +342,7 @@ class _HistoryScreenState extends State<HistoryScreen> {
               ),
             ),
             backgroundColor: Colors.blueGrey[800], // F-16: azul militar
-            actions: [
+            actions: <Widget>[
               IconButton(
                 icon: Icon(Icons.refresh, color: Colors.grey[400]), // F-16
                 onPressed: _loadSessions,
@@ -347,7 +350,7 @@ class _HistoryScreenState extends State<HistoryScreen> {
               IconButton(
                 icon: Icon(Icons.camera_alt, color: Colors.grey[400]), // F-16
                 onPressed: () async {
-                  final bytes =
+                  final Uint8List? bytes =
                       await ScreenshotHelper.captureWidget(_screenshotKey);
                   if (bytes != null) {
                     await ScreenshotHelper.sharePng(bytes,
@@ -362,7 +365,7 @@ class _HistoryScreenState extends State<HistoryScreen> {
           body: Container(
             color: Colors.grey[900], // F-16
             child: Column(
-              children: [
+              children: <Widget>[
                 _buildFilterSection(),
                 Expanded(
                   child: _isLoading
@@ -379,11 +382,11 @@ class _HistoryScreenState extends State<HistoryScreen> {
                               child: ListView.builder(
                                 padding: const EdgeInsets.all(8),
                                 itemCount: _filteredSessions.length,
-                                itemBuilder: (context, index) {
-                                  final session = _filteredSessions[index];
-                                  final fecha =
+                                itemBuilder: (BuildContext context, int index) {
+                                  final SessionModel session = _filteredSessions[index];
+                                  final String fecha =
                                       '${session.fechaInicio.day.toString().padLeft(2, '0')}/${session.fechaInicio.month.toString().padLeft(2, '0')}/${session.fechaInicio.year}';
-                                  final hora =
+                                  final String hora =
                                       '${session.fechaInicio.hour.toString().padLeft(2, '0')}:${session.fechaInicio.minute.toString().padLeft(2, '0')}:${session.fechaInicio.second.toString().padLeft(2, '0')}';
 
                                   return Container(
@@ -447,7 +450,7 @@ class _HistoryScreenState extends State<HistoryScreen> {
                                       ),
                                       trailing: Row(
                                         mainAxisSize: MainAxisSize.min,
-                                        children: [
+                                        children: <Widget>[
                                           Text(
                                             '${_formatWeight(session.pesoTotal)} kg',
                                             style: TextStyle(
@@ -521,7 +524,7 @@ class _HistoryScreenState extends State<HistoryScreen> {
       child: SingleChildScrollView(
         scrollDirection: Axis.horizontal,
         child: Row(
-          children: [
+          children: <Widget>[
             Text(
               '${_filteredSessions.length} SESIONES', // F-16: MAYÚSCULAS
               style: TextStyle(
@@ -589,11 +592,11 @@ class _HistoryScreenState extends State<HistoryScreen> {
 
   // F-16: CHIP DE FILTRO
   Widget _buildFilterChip(String label, String? filterValue) {
-    final isSelected = _selectedFilter == filterValue;
+    final bool isSelected = _selectedFilter == filterValue;
     return FilterChip(
       label: Text(label),
       selected: isSelected,
-      onSelected: (selected) =>
+      onSelected: (bool selected) =>
           _handleFilterChange(selected ? filterValue : null),
       backgroundColor: Colors.grey[800], // F-16
       selectedColor: Colors.blueGrey[700], // F-16: azul militar
@@ -618,7 +621,7 @@ class _HistoryScreenState extends State<HistoryScreen> {
     return Center(
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
-        children: [
+        children: <Widget>[
           Icon(Icons.inbox, size: 80, color: Colors.grey[600]), // F-16
           const SizedBox(height: 16),
           Text(

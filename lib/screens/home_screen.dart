@@ -1,4 +1,8 @@
 // lib/screens/home_screen.dart
+import 'dart:typed_data';
+
+import 'package:f16_balanza_electronica/models/load_cell_config.dart';
+import 'package:f16_balanza_electronica/models/weight_state.dart';
 import 'package:flutter/material.dart';
 import 'dart:async';
 import '../services/weight_service.dart';
@@ -27,7 +31,7 @@ class _HomeScreenState extends State<HomeScreen>
   StreamSubscription? _configSubscription;
 
   // GlobalKey para captura de screenshot
-  final _screenshotKey = GlobalKey();
+  final GlobalKey<State<StatefulWidget>> _screenshotKey = GlobalKey();
 
   double _peso = 0.0;
   double _tara = 0.0;
@@ -59,13 +63,13 @@ class _HomeScreenState extends State<HomeScreen>
     _divisionMinima = _weight_service_divisionFallback(_weightService);
     _unidad = _weightService.loadCellConfig.unidad;
 
-    _weightSubscription = _weightService.weightStateStream.listen((state) {
+    _weightSubscription = _weightService.weightStateStream.listen((WeightState state) {
       if (mounted) {
         setState(() {
           _peso = state.peso;
           adcRaw = state.adcRaw;
 
-          final now = DateTime.now();
+          final DateTime now = DateTime.now();
           if (_lastPeso == null || (_peso - _lastPeso!).abs() > 0.001) {
             _uiEstable = false;
             _lastStableTime = now;
@@ -82,7 +86,7 @@ class _HomeScreenState extends State<HomeScreen>
         });
       }
     });
-    _configSubscription = _weightService.configStream.listen((config) {
+    _configSubscription = _weightService.configStream.listen((LoadCellConfig config) {
       if (mounted) {
         setState(() {
           _divisionMinima = config.divisionMinima;
@@ -169,7 +173,7 @@ class _HomeScreenState extends State<HomeScreen>
     Navigator.push(
       context,
       MaterialPageRoute(
-        builder: (context) =>
+        builder: (BuildContext context) =>
             SessionProScreen(tipo: 'carga', pesoActual: _peso),
       ),
     );
@@ -179,7 +183,7 @@ class _HomeScreenState extends State<HomeScreen>
     Navigator.push(
       context,
       MaterialPageRoute(
-        builder: (context) =>
+        builder: (BuildContext context) =>
             SessionProScreen(tipo: 'descarga', pesoActual: _peso),
       ),
     );
@@ -198,16 +202,16 @@ class _HomeScreenState extends State<HomeScreen>
         body: SafeArea(
           child: LayoutBuilder(
             // Nuevo: responsive layout
-            builder: (context, constraints) {
-              final screenWidth = constraints.maxWidth;
-              final isMobile = screenWidth < 600;
-              final isTablet = screenWidth >= 600 && screenWidth < 900;
+            builder: (BuildContext context, BoxConstraints constraints) {
+              final double screenWidth = constraints.maxWidth;
+              final bool isMobile = screenWidth < 600;
+              final bool isTablet = screenWidth >= 600 && screenWidth < 900;
 
               return Container(
                 color: Colors.grey[850], // F-16: gris metálico oscuro
                 padding: EdgeInsets.all(isMobile ? 8.0 : 12.0),
                 child: Column(
-                  children: [
+                  children: <Widget>[
                     // Display de peso (mantiene lógica intacta)
                     Flexible(
                       flex: 6,
@@ -239,7 +243,7 @@ class _HomeScreenState extends State<HomeScreen>
         ),
         floatingActionButton: FloatingActionButton(
           onPressed: () async {
-            final bytes = await ScreenshotHelper.captureWidget(_screenshotKey);
+            final Uint8List? bytes = await ScreenshotHelper.captureWidget(_screenshotKey);
             if (bytes != null) {
               await ScreenshotHelper.sharePng(bytes,
                   filenamePrefix: 'home_screen');
@@ -266,7 +270,7 @@ class _HomeScreenState extends State<HomeScreen>
   // Nuevo: Layout responsivo para botones
   Widget _buildResponsiveButtons(
       BuildContext context, bool isMobile, bool isTablet) {
-    final buttons = [
+    final List<Widget> buttons = <Widget>[
       _buildTaraButton(isMobile, isTablet),
       _buildActionButton(
           'CERO', Icons.clear_all, _handleCero, isMobile, isTablet),
@@ -303,7 +307,7 @@ class _HomeScreenState extends State<HomeScreen>
         child: Row(
           mainAxisAlignment: MainAxisAlignment.center,
           children: buttons
-              .map((btn) => Padding(
+              .map((Widget btn) => Padding(
                     padding: const EdgeInsets.symmetric(horizontal: 4.0),
                     child: btn,
                   ))
@@ -324,9 +328,9 @@ class _HomeScreenState extends State<HomeScreen>
     bool isNegative = false,
   }) {
     // Tamaño responsivo
-    final buttonSize = isMobile ? 70.0 : (isTablet ? 85.0 : 95.0);
-    final iconSize = isMobile ? 18.0 : 20.0;
-    final fontSize = isMobile ? 9.0 : 10.0;
+    final double buttonSize = isMobile ? 70.0 : (isTablet ? 85.0 : 95.0);
+    final double iconSize = isMobile ? 18.0 : 20.0;
+    final double fontSize = isMobile ? 9.0 : 10.0;
 
     // Tema F-16: azul militar base, verde para positivo, rojo para negativo
     Color bgColor = Colors.blueGrey[700]!;
@@ -349,7 +353,7 @@ class _HomeScreenState extends State<HomeScreen>
         ),
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
-          children: [
+          children: <Widget>[
             Icon(icon, size: iconSize),
             const SizedBox(height: 2),
             Text(
@@ -371,9 +375,9 @@ class _HomeScreenState extends State<HomeScreen>
 
   // Nuevo: Botón TARA estilo F-16 responsive (mantiene lógica long press)
   Widget _buildTaraButton(bool isMobile, bool isTablet) {
-    final buttonSize = isMobile ? 70.0 : (isTablet ? 85.0 : 95.0);
-    final iconSize = isMobile ? 18.0 : 20.0;
-    final fontSize = isMobile ? 9.0 : 10.0;
+    final double buttonSize = isMobile ? 70.0 : (isTablet ? 85.0 : 95.0);
+    final double iconSize = isMobile ? 18.0 : 20.0;
+    final double fontSize = isMobile ? 9.0 : 10.0;
 
     return SizedBox(
       width: buttonSize,
@@ -397,7 +401,7 @@ class _HomeScreenState extends State<HomeScreen>
           ),
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
-            children: [
+            children: <Widget>[
               Icon(Icons.scale, size: iconSize),
               const SizedBox(height: 2),
               Text(
@@ -419,7 +423,7 @@ class _HomeScreenState extends State<HomeScreen>
   void _navigateTo(Widget screen) {
     Navigator.push(
       context,
-      MaterialPageRoute(builder: (context) => screen),
+      MaterialPageRoute(builder: (BuildContext context) => screen),
     );
   }
 }

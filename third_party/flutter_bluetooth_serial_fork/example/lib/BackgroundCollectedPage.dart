@@ -18,7 +18,7 @@ class BackgroundCollectedPage extends StatelessWidget {
         const Duration(hours: 2); // @TODO . show duration should be configurable
     final Iterable<DataSample> lastSamples = task.getLastOf(showDuration);
 
-    final Iterable<double> arguments = lastSamples.map((sample) {
+    final Iterable<double> arguments = lastSamples.map((DataSample sample) {
       return (sample.timestamp.millisecondsSinceEpoch - argumentsShift)
           .toDouble();
     });
@@ -49,7 +49,7 @@ class BackgroundCollectedPage extends StatelessWidget {
 
     // Map strings for labels
     final Iterable<LabelEntry> argumentsLabels =
-        argumentsLabelsTimestamps.map((timestamp) {
+        argumentsLabelsTimestamps.map((DateTime timestamp) {
       return LabelEntry(
           (timestamp.millisecondsSinceEpoch - argumentsShift).toDouble(),
           ((timestamp.hour <= 9 ? '0' : '') +
@@ -91,19 +91,19 @@ class BackgroundCollectedPage extends StatelessWidget {
               constraints: const BoxConstraints.expand(height: 350),
               arguments: arguments,
               argumentsLabels: argumentsLabels,
-              values: [
-                lastSamples.map((sample) => sample.temperature1),
-                lastSamples.map((sample) => sample.temperature2),
+              values: <Iterable<double>>[
+                lastSamples.map((DataSample sample) => sample.temperature1),
+                lastSamples.map((DataSample sample) => sample.temperature2),
               ],
               verticalLinesStyle: const PaintStyle(color: Colors.grey),
               additionalMinimalHorizontalLabelsInterval: 0,
               additionalMinimalVerticalLablesInterval: 0,
-              seriesPointsStyles: [
+              seriesPointsStyles: <PaintStyle?>[
                 null,
                 null,
                 //const PaintStyle(style: PaintingStyle.stroke, strokeWidth: 1.7*3, color: Colors.indigo, strokeCap: StrokeCap.round),
               ],
-              seriesLinesStyles: [
+              seriesLinesStyles: <PaintStyle>[
                 const PaintStyle(
                     style: PaintingStyle.stroke,
                     strokeWidth: 1.7,
@@ -123,16 +123,16 @@ class BackgroundCollectedPage extends StatelessWidget {
               constraints: const BoxConstraints.expand(height: 200),
               arguments: arguments,
               argumentsLabels: argumentsLabels,
-              values: [
-                lastSamples.map((sample) => sample.waterpHlevel),
+              values: <Iterable<double>>[
+                lastSamples.map((DataSample sample) => sample.waterpHlevel),
               ],
               verticalLinesStyle: const PaintStyle(color: Colors.grey),
               additionalMinimalHorizontalLabelsInterval: 0,
               additionalMinimalVerticalLablesInterval: 0,
-              seriesPointsStyles: [
+              seriesPointsStyles: <PaintStyle?>[
                 null,
               ],
-              seriesLinesStyles: [
+              seriesLinesStyles: <PaintStyle>[
                 const PaintStyle(
                     style: PaintingStyle.stroke,
                     strokeWidth: 1.7,

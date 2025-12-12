@@ -72,18 +72,18 @@ class BluetoothState {
 
   int toUnderlyingValue() => underlyingValue;
 
-  static const STATE_OFF = BluetoothState.fromUnderlyingValue(10);
-  static const STATE_TURNING_ON = BluetoothState.fromUnderlyingValue(11);
-  static const STATE_ON = BluetoothState.fromUnderlyingValue(12);
-  static const STATE_TURNING_OFF = BluetoothState.fromUnderlyingValue(13);
+  static const BluetoothState STATE_OFF = BluetoothState.fromUnderlyingValue(10);
+  static const BluetoothState STATE_TURNING_ON = BluetoothState.fromUnderlyingValue(11);
+  static const BluetoothState STATE_ON = BluetoothState.fromUnderlyingValue(12);
+  static const BluetoothState STATE_TURNING_OFF = BluetoothState.fromUnderlyingValue(13);
 
   //atic const STATE_BLE_OFF = BluetoothState.STATE_OFF; // Just for symetry in code :F
-  static const STATE_BLE_TURNING_ON = BluetoothState.fromUnderlyingValue(14);
-  static const STATE_BLE_ON = BluetoothState.fromUnderlyingValue(15);
-  static const STATE_BLE_TURNING_OFF = BluetoothState.fromUnderlyingValue(16);
+  static const BluetoothState STATE_BLE_TURNING_ON = BluetoothState.fromUnderlyingValue(14);
+  static const BluetoothState STATE_BLE_ON = BluetoothState.fromUnderlyingValue(15);
+  static const BluetoothState STATE_BLE_TURNING_OFF = BluetoothState.fromUnderlyingValue(16);
 
-  static const ERROR = BluetoothState.fromUnderlyingValue(-1);
-  static const UNKNOWN = BluetoothState.fromUnderlyingValue(-2);
+  static const BluetoothState ERROR = BluetoothState.fromUnderlyingValue(-1);
+  static const BluetoothState UNKNOWN = BluetoothState.fromUnderlyingValue(-2);
 
   @override
   operator ==(Object other) {

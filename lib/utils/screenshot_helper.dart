@@ -38,13 +38,13 @@ class ScreenshotHelper {
   static Future<Uint8List?> captureWidget(GlobalKey boundaryKey,
       {double pixelRatio = 3.0}) async {
     try {
-      final context = boundaryKey.currentContext;
+      final BuildContext? context = boundaryKey.currentContext;
       if (context == null) return null;
-      final renderObject = context.findRenderObject();
+      final RenderObject? renderObject = context.findRenderObject();
       if (renderObject is! RenderRepaintBoundary) return null;
 
       final ui.Image image = await renderObject.toImage(pixelRatio: pixelRatio);
-      final byteData = await image.toByteData(format: ui.ImageByteFormat.png);
+      final ByteData? byteData = await image.toByteData(format: ui.ImageByteFormat.png);
       return byteData?.buffer.asUint8List();
     } catch (e) {
       debugPrint('Error capturando widget: $e');
@@ -56,10 +56,10 @@ class ScreenshotHelper {
   /// El [prefix] permite personalizar el nombre base.
   static Future<String> saveTempPng(Uint8List bytes,
       {String prefix = 'screenshot'}) async {
-    final dir = await getTemporaryDirectory();
-    final timestamp = DateTime.now().millisecondsSinceEpoch;
-    final filePath = '${dir.path}/${prefix}_$timestamp.png';
-    final file = File(filePath);
+    final Directory dir = await getTemporaryDirectory();
+    final int timestamp = DateTime.now().millisecondsSinceEpoch;
+    final String filePath = '${dir.path}/${prefix}_$timestamp.png';
+    final File file = File(filePath);
     await file.writeAsBytes(bytes, flush: true);
     return filePath;
   }
@@ -69,8 +69,8 @@ class ScreenshotHelper {
   static Future<void> sharePng(Uint8List bytes,
       {String filenamePrefix = 'screenshot'}) async {
     try {
-      final path = await saveTempPng(bytes, prefix: filenamePrefix);
-      await Share.shareXFiles([XFile(path)], text: 'Captura de pantalla');
+      final String path = await saveTempPng(bytes, prefix: filenamePrefix);
+      await Share.shareXFiles(<XFile>[XFile(path)], text: 'Captura de pantalla');
     } catch (e) {
       debugPrint('Error compartiendo screenshot: $e');
     }

@@ -62,12 +62,12 @@ class _WeightDisplayState extends State<WeightDisplay>
 
   @override
   Widget build(BuildContext context) {
-    final decimals = _decimalsFromDivision(widget.divisionMinima);
+    final int decimals = _decimalsFromDivision(widget.divisionMinima);
 
-    final displayPeso = decimals == 0
+    final String displayPeso = decimals == 0
         ? widget.peso.round().toString()
         : widget.peso.toStringAsFixed(decimals);
-    final displayTara = decimals == 0
+    final String displayTara = decimals == 0
         ? widget.tara.round().toString()
         : widget.tara.toStringAsFixed(decimals);
 
@@ -75,16 +75,16 @@ class _WeightDisplayState extends State<WeightDisplay>
 
     return AnimatedBuilder(
       animation: _fadeAnim,
-      builder: (context, child) {
-        final borderColor = overload
+      builder: (BuildContext context, Widget? child) {
+        final Color borderColor = overload
             ? Colors.red.withOpacity(_fadeAnim.value)
             : (widget.estable ? Colors.green : Colors.grey);
-        final boxShadowColor = overload
+        final Color boxShadowColor = overload
             ? Colors.red.withOpacity(0.3 * _fadeAnim.value)
             : (widget.estable
                 ? Colors.green.withOpacity(0.3)
                 : Colors.grey.withOpacity(0.2));
-        final bgColor =
+        final Color bgColor =
             overload ? Colors.black.withOpacity(0.95) : Colors.black87;
 
         return Container(
@@ -95,7 +95,7 @@ class _WeightDisplayState extends State<WeightDisplay>
               color: borderColor,
               width: 6,
             ),
-            boxShadow: [
+            boxShadow: <BoxShadow>[
               BoxShadow(
                 color: boxShadowColor,
                 blurRadius: 20,
@@ -107,7 +107,7 @@ class _WeightDisplayState extends State<WeightDisplay>
           child: Row(
             mainAxisAlignment: MainAxisAlignment.center,
             crossAxisAlignment: CrossAxisAlignment.center,
-            children: [
+            children: <Widget>[
               // Display principal (peso grande)
               Expanded(
                 child: Center(
@@ -133,7 +133,7 @@ class _WeightDisplayState extends State<WeightDisplay>
               Column(
                 //crossAxisAlignment: CrossAxisAlignment.start,
                 mainAxisAlignment: MainAxisAlignment.center,
-                children: [
+                children: <Widget>[
                   // Unidad en extremo (kg / g / lb)
                   Text(
                     widget.unidad, // NUEVO: unidad visual
@@ -169,7 +169,7 @@ class _WeightDisplayState extends State<WeightDisplay>
                     ),
                     child: Row(
                       mainAxisSize: MainAxisSize.min,
-                      children: [
+                      children: <Widget>[
                         Icon(
                           overload
                               ? Icons.warning_amber_rounded

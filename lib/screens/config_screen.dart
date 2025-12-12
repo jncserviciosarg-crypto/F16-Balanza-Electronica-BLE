@@ -1,4 +1,6 @@
 import 'dart:async';
+import 'dart:typed_data';
+import 'package:f16_balanza_electronica/models/weight_state.dart';
 import 'package:flutter/material.dart';
 import '../models/load_cell_config.dart';
 import '../models/filter_params.dart';
@@ -15,7 +17,7 @@ class ConfigScreen extends StatefulWidget {
 
 class _ConfigScreenState extends State<ConfigScreen> {
   final WeightService _weightService = WeightService();
-  final _screenshotKey = GlobalKey();
+  final GlobalKey<State<StatefulWidget>> _screenshotKey = GlobalKey();
 
   StreamSubscription? _weightSubscription;
   int _adcRaw = 0;
@@ -60,7 +62,7 @@ class _ConfigScreenState extends State<ConfigScreen> {
   }
 
   void _subscribeToWeightStream() {
-    _weightSubscription = _weightService.weightStateStream.listen((state) {
+    _weightSubscription = _weightService.weightStateStream.listen((WeightState state) {
       if (mounted) {
         setState(() {
           _adcRaw = state.adcRaw;
@@ -112,7 +114,7 @@ class _ConfigScreenState extends State<ConfigScreen> {
       return;
     }
 
-    final newConfig = _loadCellConfig.copyWith(
+    final LoadCellConfig newConfig = _loadCellConfig.copyWith(
       capacidadKg: capacidad,
       sensibilidadMvV: sensibilidad,
       voltajeExcitacion: excitacion,
@@ -169,12 +171,12 @@ class _ConfigScreenState extends State<ConfigScreen> {
             ),
           ),
           backgroundColor: Colors.blueGrey[800], // F-16: azul militar
-          actions: [
+          actions: <Widget>[
             IconButton(
               icon: Icon(Icons.camera_alt,
                   color: Colors.grey[400]), // F-16: icono gris
               onPressed: () async {
-                final bytes =
+                final Uint8List? bytes =
                     await ScreenshotHelper.captureWidget(_screenshotKey);
                 if (bytes != null) {
                   await ScreenshotHelper.sharePng(bytes,
@@ -196,16 +198,16 @@ class _ConfigScreenState extends State<ConfigScreen> {
           child: SingleChildScrollView(
             padding: const EdgeInsets.all(12),
             child: LayoutBuilder(
-              builder: (context, constraints) {
+              builder: (BuildContext context, BoxConstraints constraints) {
                 bool isWideScreen = constraints.maxWidth > 600;
 
                 if (isWideScreen) {
                   return Row(
                     crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
+                    children: <Widget>[
                       Expanded(
                         child: Column(
-                          children: [
+                          children: <Widget>[
                             _buildLoadCellSection(),
                           ],
                         ),
@@ -213,7 +215,7 @@ class _ConfigScreenState extends State<ConfigScreen> {
                       const SizedBox(width: 12),
                       Expanded(
                         child: Column(
-                          children: [
+                          children: <Widget>[
                             _buildMonitoringSection(),
                             const SizedBox(height: 12),
                             _buildFilterSection(),
@@ -224,7 +226,7 @@ class _ConfigScreenState extends State<ConfigScreen> {
                   );
                 } else {
                   return Column(
-                    children: [
+                    children: <Widget>[
                       _buildLoadCellSection(),
                       const SizedBox(height: 12),
                       _buildMonitoringSection(),
@@ -251,7 +253,7 @@ class _ConfigScreenState extends State<ConfigScreen> {
         padding: const EdgeInsets.all(12),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
+          children: <Widget>[
             Text(
               'CELDA DE CARGA', // F-16: sin emoji
               style: TextStyle(
@@ -279,7 +281,7 @@ class _ConfigScreenState extends State<ConfigScreen> {
                 _divisionMinimaController, 'DIVISIÓN MÍNIMA (KG)', '> 0'),
             const SizedBox(height: 10),
             Row(
-              children: [
+              children: <Widget>[
                 Text(
                   'UNIDAD:', // F-16: MAYÚSCULAS
                   style: TextStyle(
@@ -307,13 +309,13 @@ class _ConfigScreenState extends State<ConfigScreen> {
                           fontSize: 13,
                           fontWeight: FontWeight.bold,
                           letterSpacing: 1), // F-16
-                      items: ['kg', 'g', 'lb'].map((unidad) {
+                      items: <String>['kg', 'g', 'lb'].map((String unidad) {
                         return DropdownMenuItem(
                           value: unidad,
                           child: Text(unidad.toUpperCase()), // F-16: MAYÚSCULAS
                         );
                       }).toList(),
-                      onChanged: (value) {
+                      onChanged: (String? value) {
                         if (value != null) {
                           setState(() {
                             _unidadSeleccionada = value;
@@ -365,7 +367,7 @@ class _ConfigScreenState extends State<ConfigScreen> {
         padding: const EdgeInsets.all(12),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
+          children: <Widget>[
             Text(
               'FILTROS', // F-16: sin emoji, MAYÚSCULAS
               style: TextStyle(
@@ -396,7 +398,7 @@ class _ConfigScreenState extends State<ConfigScreen> {
         padding: const EdgeInsets.all(12),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
+          children: <Widget>[
             Text(
               'MONITOREO EN TIEMPO REAL', // F-16: sin emoji
               style: TextStyle(
@@ -409,10 +411,10 @@ class _ConfigScreenState extends State<ConfigScreen> {
             const SizedBox(height: 10),
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
+              children: <Widget>[
                 Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
+                  children: <Widget>[
                     Text(
                       'ADC RAW:', // F-16: MAYÚSCULAS
                       style: TextStyle(
@@ -433,7 +435,7 @@ class _ConfigScreenState extends State<ConfigScreen> {
                 ),
                 Column(
                   crossAxisAlignment: CrossAxisAlignment.end,
-                  children: [
+                  children: <Widget>[
                     Text(
                       'ADC FILTRADO:', // F-16: MAYÚSCULAS
                       style: TextStyle(
@@ -458,7 +460,7 @@ class _ConfigScreenState extends State<ConfigScreen> {
               Padding(
                 padding: const EdgeInsets.only(top: 8),
                 child: Row(
-                  children: [
+                  children: <Widget>[
                     Icon(Icons.warning_amber,
                         color: Colors.grey[500], size: 14), // F-16: gris
                     const SizedBox(width: 6),

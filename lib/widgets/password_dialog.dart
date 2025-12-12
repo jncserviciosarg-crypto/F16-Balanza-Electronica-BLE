@@ -50,7 +50,7 @@ class _PasswordDialogState extends State<PasswordDialog> {
   }
 
   void _submit() {
-    final value = int.tryParse(_controller.text.trim());
+    final int? value = int.tryParse(_controller.text.trim());
     if (value == null) {
       setState(() => _error = 'Ingrese un número válido');
       return;
@@ -65,7 +65,7 @@ class _PasswordDialogState extends State<PasswordDialog> {
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
+      children: <Widget>[
         const Text('Clave técnica',
             style: TextStyle(fontSize: 18, color: Colors.blueGrey)),
         const SizedBox(height: 2),
@@ -106,13 +106,13 @@ class _PasswordDialogState extends State<PasswordDialog> {
 
   @override
   Widget build(BuildContext context) {
-    final mq = MediaQuery.of(context);
-    final size = mq.size;
-    final isWide = size.width > size.height;
-    final keyboard = mq.viewInsets.bottom;
+    final MediaQueryData mq = MediaQuery.of(context);
+    final Size size = mq.size;
+    final bool isWide = size.width > size.height;
+    final double keyboard = mq.viewInsets.bottom;
 
     // Diálogo más compacto (mitad de pantalla)
-    final dialogMaxHeight = size.height * 0.50;
+    final double dialogMaxHeight = size.height * 0.50;
 
     return Padding(
       padding: EdgeInsets.only(
@@ -140,7 +140,7 @@ class _PasswordDialogState extends State<PasswordDialog> {
               padding: const EdgeInsets.all(5),
               child: Column(
                 mainAxisSize: MainAxisSize.min,
-                children: [
+                children: <Widget>[
                   Text(
                     widget.title ?? 'Contraseña requerida',
                     style: const TextStyle(
@@ -150,11 +150,11 @@ class _PasswordDialogState extends State<PasswordDialog> {
                   if (isWide)
                     Row(
                       crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
+                      children: <Widget>[
                         Expanded(
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
+                            children: <Widget>[
                               _buildDynamicKey(),
                               _buildMessage(),
                             ],
@@ -167,7 +167,7 @@ class _PasswordDialogState extends State<PasswordDialog> {
                   else
                     Column(
                       mainAxisSize: MainAxisSize.min,
-                      children: [
+                      children: <Widget>[
                         _buildDynamicKey(),
                         _buildMessage(),
                         _buildPasswordField(),
@@ -176,7 +176,7 @@ class _PasswordDialogState extends State<PasswordDialog> {
                   const SizedBox(height: 5),
                   Row(
                     mainAxisAlignment: MainAxisAlignment.end,
-                    children: [
+                    children: <Widget>[
                       TextButton(
                         onPressed: () => Navigator.of(context).pop(null),
                         child: const Text('Cancelar'),

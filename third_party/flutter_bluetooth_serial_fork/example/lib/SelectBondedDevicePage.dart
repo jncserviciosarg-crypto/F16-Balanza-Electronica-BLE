@@ -57,7 +57,7 @@ class _SelectBondedDevicePage extends State<SelectBondedDevicePage> {
       setState(() {
         devices = bondedDevices
             .map(
-              (device) => _DeviceWithAvailability(
+              (BluetoothDevice device) => _DeviceWithAvailability(
                 device,
                 widget.checkAvailability
                     ? _DeviceAvailability.maybe
@@ -79,7 +79,7 @@ class _SelectBondedDevicePage extends State<SelectBondedDevicePage> {
 
   void _startDiscovery() {
     _discoveryStreamSubscription =
-        FlutterBluetoothSerial.instance.startDiscovery().listen((r) {
+        FlutterBluetoothSerial.instance.startDiscovery().listen((BluetoothDiscoveryResult r) {
       setState(() {
         Iterator i = devices.iterator;
         while (i.moveNext()) {
@@ -110,7 +110,7 @@ class _SelectBondedDevicePage extends State<SelectBondedDevicePage> {
   @override
   Widget build(BuildContext context) {
     List<BluetoothDeviceListEntry> list = devices
-        .map((_device) => BluetoothDeviceListEntry(
+        .map((_DeviceWithAvailability _device) => BluetoothDeviceListEntry(
               device: _device.device,
               rssi: _device.rssi,
               enabled: _device.availability == _DeviceAvailability.yes,

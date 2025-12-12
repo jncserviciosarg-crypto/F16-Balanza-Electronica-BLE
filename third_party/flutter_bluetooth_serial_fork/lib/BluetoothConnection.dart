@@ -60,7 +60,7 @@ class BluetoothConnection {
     // Sorry for pseudo-factory, but `factory` keyword disallows `Future`.
     return BluetoothConnection._consumeConnectionID(await FlutterBluetoothSerial
         ._methodChannel
-        .invokeMethod('connect', {"address": address}));
+        .invokeMethod('connect', <String, String?>{"address": address}));
   }
 
   /// Should be called to make sure the connection is closed and resources are freed (sockets/channels).
@@ -70,7 +70,7 @@ class BluetoothConnection {
 
   /// Closes connection (rather immediately), in result should also disconnect.
   Future<void> close() {
-    return Future.wait([
+    return Future.wait(<Future<dynamic>>[
       output.close(),
       _readStreamSubscription.cancel(),
       (!_readStreamController.isClosed)
@@ -140,7 +140,7 @@ class _BluetoothStreamSink<Uint8List> extends StreamSink<Uint8List> {
       }
 
       await FlutterBluetoothSerial._methodChannel
-          .invokeMethod('write', {'id': _id, 'bytes': data});
+          .invokeMethod('write', <String, Object?>{'id': _id, 'bytes': data});
     }).catchError((e) {
       exception = e;
       close();
@@ -164,7 +164,7 @@ class _BluetoothStreamSink<Uint8List> extends StreamSink<Uint8List> {
         // while `addStream` still in-going. We could do something about it, but this seems
         // not to be so necessary since `StreamSink` specifies that `addStream` should be
         // blocking for other forms of `add`ition on the sink.
-        var completer = Completer();
+        Completer<dynamic> completer = Completer();
         stream.listen(add).onDone(completer.complete);
         await completer.future;
         await _chainedFutures; // Wait last* `add` of the stream to be fulfilled

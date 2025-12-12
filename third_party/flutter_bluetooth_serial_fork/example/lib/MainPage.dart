@@ -35,7 +35,7 @@ class _MainPage extends State<MainPage> {
     super.initState();
 
     // Get current state
-    FlutterBluetoothSerial.instance.state.then((state) {
+    FlutterBluetoothSerial.instance.state.then((BluetoothState state) {
       setState(() {
         _bluetoothState = state;
       });
@@ -50,14 +50,14 @@ class _MainPage extends State<MainPage> {
       return true;
     }).then((_) {
       // Update the address field
-      FlutterBluetoothSerial.instance.address.then((address) {
+      FlutterBluetoothSerial.instance.address.then((String? address) {
         setState(() {
           _address = address!;
         });
       });
     });
 
-    FlutterBluetoothSerial.instance.name.then((name) {
+    FlutterBluetoothSerial.instance.name.then((String? name) {
       setState(() {
         _name = name!;
       });
@@ -141,7 +141,7 @@ class _MainPage extends State<MainPage> {
               subtitle: const Text("PsychoX-Luna"),
               trailing: Row(
                 mainAxisSize: MainAxisSize.min,
-                children: [
+                children: <Widget>[
                   Checkbox(
                     value: _discoverableTimeoutSecondsLeft != 0,
                     onChanged: null,
@@ -170,7 +170,7 @@ class _MainPage extends State<MainPage> {
                           setState(() {
                             if (_discoverableTimeoutSecondsLeft < 0) {
                               FlutterBluetoothSerial.instance.isDiscoverable
-                                  .then((isDiscoverable) {
+                                  .then((bool? isDiscoverable) {
                                 if (isDiscoverable ?? false) {
                                   print(
                                       "Discoverable after timeout... might be infinity timeout :F");
@@ -222,7 +222,7 @@ class _MainPage extends State<MainPage> {
                     final BluetoothDevice? selectedDevice =
                         await Navigator.of(context).push(
                       MaterialPageRoute(
-                        builder: (context) {
+                        builder: (BuildContext context) {
                           return const DiscoveryPage();
                         },
                       ),
@@ -242,7 +242,7 @@ class _MainPage extends State<MainPage> {
                   final BluetoothDevice? selectedDevice =
                       await Navigator.of(context).push(
                     MaterialPageRoute(
-                      builder: (context) {
+                      builder: (BuildContext context) {
                         return const SelectBondedDevicePage(checkAvailability: false);
                       },
                     ),
@@ -274,7 +274,7 @@ class _MainPage extends State<MainPage> {
                     final BluetoothDevice? selectedDevice =
                         await Navigator.of(context).push(
                       MaterialPageRoute(
-                        builder: (context) {
+                        builder: (BuildContext context) {
                           return const SelectBondedDevicePage(
                               checkAvailability: false);
                         },
@@ -298,7 +298,7 @@ class _MainPage extends State<MainPage> {
                     ? () {
                         Navigator.of(context).push(
                           MaterialPageRoute(
-                            builder: (context) {
+                            builder: (BuildContext context) {
                               return ScopedModel<BackgroundCollectingTask>(
                                 model: _collectingTask!,
                                 child: BackgroundCollectedPage(),
@@ -319,7 +319,7 @@ class _MainPage extends State<MainPage> {
   void _startChat(BuildContext context, BluetoothDevice server) {
     Navigator.of(context).push(
       MaterialPageRoute(
-        builder: (context) {
+        builder: (BuildContext context) {
           return ChatPage(server: server);
         },
       ),

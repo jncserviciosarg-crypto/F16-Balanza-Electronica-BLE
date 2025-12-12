@@ -1,4 +1,6 @@
 import 'dart:async';
+import 'dart:typed_data';
+import 'package:f16_balanza_electronica/models/weight_state.dart';
 import 'package:flutter/material.dart';
 import '../models/calibration_model.dart';
 import '../services/weight_service.dart';
@@ -18,7 +20,7 @@ class _CalibrationScreenState extends State<CalibrationScreen> {
   final WeightService _weightService = WeightService();
   final AuthService _authService = AuthService();
   StreamSubscription? _weightSubscription;
-  final _screenshotKey = GlobalKey();
+  final GlobalKey<State<StatefulWidget>> _screenshotKey = GlobalKey();
 
   final TextEditingController _offsetController = TextEditingController();
   final TextEditingController _adcReferenciaController =
@@ -71,7 +73,7 @@ class _CalibrationScreenState extends State<CalibrationScreen> {
   }
 
   void _subscribeToWeightStream() {
-    _weightSubscription = _weightService.weightStateStream.listen((state) {
+    _weightSubscription = _weightService.weightStateStream.listen((WeightState state) {
       if (mounted) {
         setState(() {
           _adcRaw = state.adcRaw;
@@ -94,7 +96,7 @@ class _CalibrationScreenState extends State<CalibrationScreen> {
   }
 
   Future<bool> _pedirPassFija(int clave) async {
-    final input = await PasswordDialog.show(
+    final int? input = await PasswordDialog.show(
       context,
       mode: PasswordMode.fixed,
       title: 'Contraseña requerida',
@@ -105,8 +107,8 @@ class _CalibrationScreenState extends State<CalibrationScreen> {
   }
 
   Future<bool> _pedirPassDinamicaOMaestra() async {
-    final key = await _authService.generateDynamicKey();
-    final input = await PasswordDialog.show(
+    final int key = await _authService.generateDynamicKey();
+    final int? input = await PasswordDialog.show(
       context,
       mode: PasswordMode.dynamic,
       dynamicKey: key,
@@ -289,7 +291,7 @@ class _CalibrationScreenState extends State<CalibrationScreen> {
     // F-16: Diálogo de confirmación
     showDialog(
       context: context,
-      builder: (context) => AlertDialog(
+      builder: (BuildContext context) => AlertDialog(
         backgroundColor: Colors.grey[900], // F-16: fondo oscuro
         title: const Text(
           'RESTABLECER CALIBRACIÓN', // F-16: MAYÚSCULAS
@@ -303,7 +305,7 @@ class _CalibrationScreenState extends State<CalibrationScreen> {
           '¿Está seguro de restablecer la calibración a valores por defecto?',
           style: TextStyle(color: Colors.white70),
         ),
-        actions: [
+        actions: <Widget>[
           TextButton(
             onPressed: () => Navigator.pop(context),
             child: Text(
@@ -391,11 +393,11 @@ class _CalibrationScreenState extends State<CalibrationScreen> {
             ),
           ),
           backgroundColor: Colors.blueGrey[800], // F-16: azul militar
-          actions: [
+          actions: <Widget>[
             IconButton(
               icon: Icon(Icons.camera_alt, color: Colors.grey[400]), // F-16
               onPressed: () async {
-                final bytes =
+                final Uint8List? bytes =
                     await ScreenshotHelper.captureWidget(_screenshotKey);
                 if (bytes != null) {
                   await ScreenshotHelper.sharePng(bytes,
@@ -418,13 +420,13 @@ class _CalibrationScreenState extends State<CalibrationScreen> {
             padding: const EdgeInsets.all(12),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [
+              children: <Widget>[
                 // F-16: Factor de corrección
                 _buildCompactCard(
                   title: 'FACTOR DE CORRECCIÓN (%)',
                   color: Colors.blueGrey[400]!, // F-16: color uniforme
                   child: Row(
-                    children: [
+                    children: <Widget>[
                       Expanded(
                         flex: 2,
                         child: _buildCompactTextField(
@@ -457,7 +459,7 @@ class _CalibrationScreenState extends State<CalibrationScreen> {
                 // F-16: Proceso de calibración en 3 pasos
                 IntrinsicHeight(
                   child: Row(
-                    children: [
+                    children: <Widget>[
                       Expanded(
                         child: _buildStepCard(
                           step: '1',
@@ -518,7 +520,7 @@ class _CalibrationScreenState extends State<CalibrationScreen> {
         padding: const EdgeInsets.all(10),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
+          children: <Widget>[
             Text(
               title,
               style: TextStyle(
@@ -555,9 +557,9 @@ class _CalibrationScreenState extends State<CalibrationScreen> {
         padding: const EdgeInsets.all(8),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
+          children: <Widget>[
             Row(
-              children: [
+              children: <Widget>[
                 CircleAvatar(
                   radius: 12,
                   backgroundColor: color,
@@ -586,7 +588,7 @@ class _CalibrationScreenState extends State<CalibrationScreen> {
             ),
             const SizedBox(height: 8),
             _buildCompactTextField(controller, title),
-            if (secondController != null) ...[
+            if (secondController != null) ...<Widget>[
               const SizedBox(height: 4),
               _buildCompactTextField(
                   secondController, 'ADC REF'), // F-16: MAYÚSCULAS
@@ -658,7 +660,7 @@ class _CalibrationScreenState extends State<CalibrationScreen> {
   // F-16: GRID DE ACCIONES
   Widget _buildActionsGrid() {
     return Row(
-      children: [
+      children: <Widget>[
         Expanded(
           child: _compactActionButton(
             label: 'GUARDAR\nCALIBRACIÓN',
@@ -719,7 +721,7 @@ class _CalibrationScreenState extends State<CalibrationScreen> {
       ),
       child: Column(
         mainAxisSize: MainAxisSize.min,
-        children: [
+        children: <Widget>[
           Icon(icon, size: 20), // F-16: icono más compacto
           const SizedBox(height: 2),
           Text(

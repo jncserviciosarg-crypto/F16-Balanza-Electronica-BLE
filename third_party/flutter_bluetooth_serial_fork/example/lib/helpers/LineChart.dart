@@ -137,7 +137,7 @@ class LineChart extends StatelessWidget {
         // For more, user should specify them :F
       ]);
     } else {
-      return seriesPointsStyles.map((style) => style?.toPaint()).toList();
+      return seriesPointsStyles.map((PaintStyle? style) => style?.toPaint()).toList();
     }
   }
 
@@ -146,7 +146,7 @@ class LineChart extends StatelessWidget {
     if (seriesLinesStyles == null) {
       return null;
     } else {
-      return seriesLinesStyles.map((style) => style.toPaint()).toList();
+      return seriesLinesStyles.map((PaintStyle style) => style.toPaint()).toList();
     }
   }
 
@@ -502,10 +502,10 @@ class _LineChartPainter extends CustomPainter {
     Iterator<Iterable<double?>> series = values.iterator;
     Iterator<Paint?> linesPaints = seriesLinesPaints == null
         ? <Paint>[].iterator
-        : (seriesLinesPaints ?? []).iterator;
+        : (seriesLinesPaints ?? <ui.Paint>[]).iterator;
     Iterator<Paint?> pointsPaints = seriesPointsPaints.iterator;
     while (series.moveNext()) {
-      List<Offset> points = [];
+      List<Offset> points = <ui.Offset>[];
       Iterator<double?> value = series.current.iterator;
       Iterator<double> argument = arguments.iterator;
       while (value.moveNext()) {

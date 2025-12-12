@@ -54,7 +54,7 @@ class BluetoothDevice {
   }
 
   /// Creates map from `BluetoothDevice`.
-  Map<String, dynamic> toMap() => {
+  Map<String, dynamic> toMap() => <String, dynamic>{
         "name": name,
         "address": address,
         "type": type.toUnderlyingValue(),

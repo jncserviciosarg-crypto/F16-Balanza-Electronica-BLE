@@ -20,8 +20,8 @@ class SessionWeightRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final fecha = _formatFecha(pesada.fechaHora);
-    final hora = _formatHora(pesada.fechaHora);
+    final String fecha = _formatFecha(pesada.fechaHora);
+    final String hora = _formatHora(pesada.fechaHora);
 
     return Container(
       margin: const EdgeInsets.symmetric(horizontal: 2, vertical: 2),
@@ -33,7 +33,7 @@ class SessionWeightRow extends StatelessWidget {
       child: Padding(
         padding: const EdgeInsets.symmetric(horizontal: 2, vertical: 2),
         child: Row(
-          children: [
+          children: <Widget>[
             // Número
             SizedBox(
               width: 16,

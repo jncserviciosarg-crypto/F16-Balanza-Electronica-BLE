@@ -40,21 +40,21 @@ class BluetoothService {
       }
 
       // Obtener versión de Android
-      final deviceInfo = DeviceInfoPlugin();
-      final androidInfo = await deviceInfo.androidInfo;
-      final sdkInt = androidInfo.version.sdkInt;
+      final DeviceInfoPlugin deviceInfo = DeviceInfoPlugin();
+      final AndroidDeviceInfo androidInfo = await deviceInfo.androidInfo;
+      final int sdkInt = androidInfo.version.sdkInt;
 
-      List<Permission> permissionsToRequest = [];
+      List<Permission> permissionsToRequest = <Permission>[];
 
       if (sdkInt >= 31) {
         // Android 12+ (API 31+)
-        permissionsToRequest = [
+        permissionsToRequest = <Permission>[
           Permission.bluetoothScan,
           Permission.bluetoothConnect,
         ];
       } else {
         // Android 11 o inferior
-        permissionsToRequest = [
+        permissionsToRequest = <Permission>[
           Permission.bluetooth,
           Permission.location,
         ];
@@ -62,7 +62,7 @@ class BluetoothService {
 
       // Verificar si ya están concedidos
       bool allGranted = true;
-      for (var permission in permissionsToRequest) {
+      for (Permission permission in permissionsToRequest) {
         if (!await permission.isGranted) {
           allGranted = false;
           break;
@@ -74,13 +74,13 @@ class BluetoothService {
       }
 
       // Solicitar permisos
-      Map<Permission, PermissionStatus> statuses = {};
-      for (var permission in permissionsToRequest) {
+      Map<Permission, PermissionStatus> statuses = <Permission, PermissionStatus>{};
+      for (Permission permission in permissionsToRequest) {
         statuses[permission] = await permission.request();
       }
 
       // Verificar resultados
-      for (var status in statuses.values) {
+      for (PermissionStatus status in statuses.values) {
         if (!status.isGranted) {
           return false;
         }
@@ -96,11 +96,11 @@ class BluetoothService {
   // Obtener dispositivos emparejados
   Future<List<BluetoothDevice>> getPairedDevices() async {
     try {
-      final devices = await _adapter.getBondedDevices();
+      final List<BluetoothDevice> devices = await _adapter.getBondedDevices();
       return devices;
     } catch (e) {
       debugPrint('Error obteniendo dispositivos emparejados: $e');
-      return [];
+      return <BluetoothDevice>[];
     }
   }
 
@@ -131,7 +131,7 @@ class BluetoothService {
         await disconnect();
       }
 
-      final conn = await _adapter.connectToAddress(address);
+      final BluetoothConnection? conn = await _adapter.connectToAddress(address);
       _connection = conn;
       _isConnected = true;
       _connectionController.add(true);

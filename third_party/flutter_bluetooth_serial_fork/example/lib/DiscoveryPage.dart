@@ -44,10 +44,10 @@ class _DiscoveryPage extends State<DiscoveryPage> {
 
   void _startDiscovery() {
     _streamSubscription =
-        FlutterBluetoothSerial.instance.startDiscovery().listen((r) {
+        FlutterBluetoothSerial.instance.startDiscovery().listen((BluetoothDiscoveryResult r) {
       setState(() {
-        final existingIndex = results.indexWhere(
-            (element) => element.device.address == r.device.address);
+        final int existingIndex = results.indexWhere(
+            (BluetoothDiscoveryResult element) => element.device.address == r.device.address);
         if (existingIndex >= 0)
           results[existingIndex] = r;
         else
@@ -97,10 +97,10 @@ class _DiscoveryPage extends State<DiscoveryPage> {
       ),
       body: ListView.builder(
         itemCount: results.length,
-        itemBuilder: (BuildContext context, index) {
+        itemBuilder: (BuildContext context, int index) {
           BluetoothDiscoveryResult result = results[index];
-          final device = result.device;
-          final address = device.address;
+          final BluetoothDevice device = result.device;
+          final String address = device.address;
           return BluetoothDeviceListEntry(
             device: device,
             rssi: result.rssi,

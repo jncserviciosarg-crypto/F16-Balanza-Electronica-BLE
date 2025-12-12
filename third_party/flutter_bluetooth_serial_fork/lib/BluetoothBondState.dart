@@ -39,10 +39,10 @@ class BluetoothBondState {
 
   int toUnderlyingValue() => underlyingValue;
 
-  static const unknown = BluetoothBondState.fromUnderlyingValue(0);
-  static const none = BluetoothBondState.fromUnderlyingValue(10);
-  static const bonding = BluetoothBondState.fromUnderlyingValue(11);
-  static const bonded = BluetoothBondState.fromUnderlyingValue(12);
+  static const BluetoothBondState unknown = BluetoothBondState.fromUnderlyingValue(0);
+  static const BluetoothBondState none = BluetoothBondState.fromUnderlyingValue(10);
+  static const BluetoothBondState bonding = BluetoothBondState.fromUnderlyingValue(11);
+  static const BluetoothBondState bonded = BluetoothBondState.fromUnderlyingValue(12);
 
   @override
   operator ==(Object other) {

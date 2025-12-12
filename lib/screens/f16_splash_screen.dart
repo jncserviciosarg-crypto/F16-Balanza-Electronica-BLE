@@ -30,7 +30,7 @@ enum _StepState { hidden, testing, ready }
 class _F16SplashScreenState extends State<F16SplashScreen>
     with SingleTickerProviderStateMixin {
   // Secuencia de sistemas (en mayúsculas según requerimiento)
-  static const List<String> _systems = [
+  static const List<String> _systems = <String>[
     'SENSOR DE CARGA',
     'COMUNICACIÓN SERIE',
     'CONFIGURACIÓN DE ESCALA',
@@ -56,10 +56,10 @@ class _F16SplashScreenState extends State<F16SplashScreen>
   }
 
   Future<void> _startSequence() async {
-    final totalMs = widget.perSystemDuration.inMilliseconds;
+    final int totalMs = widget.perSystemDuration.inMilliseconds;
     // Dividir la duración en dos fases: testing + transición a ready
-    final testingMs = (totalMs * 0.65).round();
-    final afterMs = totalMs - testingMs;
+    final int testingMs = (totalMs * 0.65).round();
+    final int afterMs = totalMs - testingMs;
 
     for (int i = 0; i < _systems.length; i++) {
       if (!mounted) return;
@@ -92,17 +92,17 @@ class _F16SplashScreenState extends State<F16SplashScreen>
   }
 
   Widget _buildRow(int index, BoxConstraints constraints) {
-    final state = _states[index];
-    final label = _systems[index];
+    final _StepState state = _states[index];
+    final String label = _systems[index];
 
     // Estilos comunes
-    const letterSpacing = 2.6;
-    const borderRadius = 5.0;
+    const double letterSpacing = 2.6;
+    const double borderRadius = 5.0;
 
     // Color de texto y de estado
-    final green = Colors.green[700]!;
-    final white = Colors.white;
-    final darkPanel = Colors.grey[900]!;
+    final Color green = Colors.green[700]!;
+    final Color white = Colors.white;
+    final Color darkPanel = Colors.grey[900]!;
 
     // Estado visual
     Widget statusWidget;
@@ -118,7 +118,7 @@ class _F16SplashScreenState extends State<F16SplashScreen>
       // EN PRUEBA: texto verde y punto pulsante
       statusWidget = Row(
         mainAxisSize: MainAxisSize.min,
-        children: [
+        children: <Widget>[
           AnimatedOpacity(
             opacity: 1.0,
             duration: const Duration(milliseconds: 300),
@@ -142,7 +142,7 @@ class _F16SplashScreenState extends State<F16SplashScreen>
       // READY / LISTO
       statusWidget = Row(
         mainAxisSize: MainAxisSize.min,
-        children: [
+        children: <Widget>[
           Icon(Icons.check, color: green, size: 18),
           const SizedBox(width: 8),
           Text(
@@ -172,7 +172,7 @@ class _F16SplashScreenState extends State<F16SplashScreen>
           border: Border.all(color: Colors.green[700]!, width: 1.2),
         ),
         child: Row(
-          children: [
+          children: <Widget>[
             Expanded(
               child: Text(
                 label,
@@ -194,19 +194,19 @@ class _F16SplashScreenState extends State<F16SplashScreen>
 
   @override
   Widget build(BuildContext context) {
-    final green = Colors.green[700]!;
+    final Color green = Colors.green[700]!;
 
     return Scaffold(
       backgroundColor: Colors.black,
       body: SafeArea(
         child: Center(
-          child: LayoutBuilder(builder: (context, constraints) {
-            final maxWidth = constraints.maxWidth.clamp(300.0, 900.0);
+          child: LayoutBuilder(builder: (BuildContext context, BoxConstraints constraints) {
+            final double maxWidth = constraints.maxWidth.clamp(300.0, 900.0);
             return ConstrainedBox(
               constraints: BoxConstraints(minWidth: 300, maxWidth: maxWidth),
               child: Column(
                 mainAxisSize: MainAxisSize.min,
-                children: [
+                children: <Widget>[
                   // Ventana principal con borde verde
                   Container(
                     width: double.infinity,
@@ -218,10 +218,10 @@ class _F16SplashScreenState extends State<F16SplashScreen>
                     ),
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
+                      children: <Widget>[
                         // Cabecera mínima tipo HUD
                         Row(
-                          children: [
+                          children: <Widget>[
                             const Text(
                               'AUTOPRUEBA',
                               style: TextStyle(
@@ -276,7 +276,7 @@ class _F16SplashScreenState extends State<F16SplashScreen>
                           ),
                           child: Column(
                             children: List.generate(_systems.length,
-                                (i) => _buildRow(i, constraints)),
+                                (int i) => _buildRow(i, constraints)),
                           ),
                         ),
 
@@ -284,7 +284,7 @@ class _F16SplashScreenState extends State<F16SplashScreen>
 
                         // Indicador inferior
                         Row(
-                          children: [
+                          children: <Widget>[
                             Expanded(
                               child: Text(
                                 'ESTADO: ${_showSystemOperating ? 'SISTEMA OPERATIVO' : 'INICIALIZANDO...'}',
@@ -338,10 +338,10 @@ class _F16SplashScreenState extends State<F16SplashScreen>
   }
 
   String _timestampLabel() {
-    final now = DateTime.now();
-    final h = now.hour.toString().padLeft(2, '0');
-    final m = now.minute.toString().padLeft(2, '0');
-    final s = now.second.toString().padLeft(2, '0');
+    final DateTime now = DateTime.now();
+    final String h = now.hour.toString().padLeft(2, '0');
+    final String m = now.minute.toString().padLeft(2, '0');
+    final String s = now.second.toString().padLeft(2, '0');
     return '$h:$m:$s';
   }
 }

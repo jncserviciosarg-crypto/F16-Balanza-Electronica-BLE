@@ -38,7 +38,7 @@ class SessionWeight {
 
   /// Convierte la pesada a un mapa JSON
   Map<String, dynamic> toMap() {
-    return {
+    return <String, dynamic>{
       'id': id,
       'peso': peso,
       'fechaHora': fechaHora.toIso8601String(),

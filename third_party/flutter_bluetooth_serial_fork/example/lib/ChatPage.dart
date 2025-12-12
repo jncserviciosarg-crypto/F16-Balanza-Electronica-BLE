@@ -22,7 +22,7 @@ class _Message {
 }
 
 class _ChatPage extends State<ChatPage> {
-  static final clientID = 0;
+  static final int clientID = 0;
   BluetoothConnection? connection;
 
   List<_Message> messages = List<_Message>.empty(growable: true);
@@ -41,7 +41,7 @@ class _ChatPage extends State<ChatPage> {
   void initState() {
     super.initState();
 
-    BluetoothConnection.toAddress(widget.server.address).then((_connection) {
+    BluetoothConnection.toAddress(widget.server.address).then((BluetoothConnection _connection) {
       print('Connected to the device');
       connection = _connection;
       setState(() {
@@ -85,7 +85,7 @@ class _ChatPage extends State<ChatPage> {
 
   @override
   Widget build(BuildContext context) {
-    final List<Row> list = messages.map((_message) {
+    final List<Row> list = messages.map((_Message _message) {
       return Row(
         children: <Widget>[
           Container(
@@ -109,7 +109,7 @@ class _ChatPage extends State<ChatPage> {
       );
     }).toList();
 
-    final serverName = widget.server.name ?? "Unknown";
+    final String serverName = widget.server.name ?? "Unknown";
     return Scaffold(
       appBar: AppBar(
           title: (isConnecting
@@ -165,7 +165,7 @@ class _ChatPage extends State<ChatPage> {
   void _onDataReceived(Uint8List data) {
     // Allocate buffer for parsed data
     int backspacesCounter = 0;
-    data.forEach((byte) {
+    data.forEach((int byte) {
       if (byte == 8 || byte == 127) {
         backspacesCounter++;
       }

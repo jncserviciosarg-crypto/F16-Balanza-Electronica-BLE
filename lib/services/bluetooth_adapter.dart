@@ -29,10 +29,10 @@ class FlutterBluetoothSerialAdapter implements BluetoothAdapter {
   @override
   Future<List<BluetoothDevice>> getBondedDevices() async {
     try {
-      final devices = await _flutterBluetooth.getBondedDevices();
+      final List<BluetoothDevice> devices = await _flutterBluetooth.getBondedDevices();
       return devices.cast<BluetoothDevice>();
     } catch (e) {
-      return [];
+      return <BluetoothDevice>[];
     }
   }
 

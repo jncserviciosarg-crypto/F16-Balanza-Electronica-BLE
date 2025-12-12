@@ -11,7 +11,7 @@ class AuthService {
   }
 
   Future<int> generateDynamicKey() async {
-    final random = Random();
+    final Random random = Random();
     return 1000 + random.nextInt(9000);
   }
 

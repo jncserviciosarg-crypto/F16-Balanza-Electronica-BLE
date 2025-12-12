@@ -17,8 +17,8 @@ class PersistenceService {
 
   Future<void> saveConfig(LoadCellConfig config) async {
     try {
-      final prefs = await SharedPreferences.getInstance();
-      final jsonString = jsonEncode(config.toMap());
+      final SharedPreferences prefs = await SharedPreferences.getInstance();
+      final String jsonString = jsonEncode(config.toMap());
       await prefs.setString(_keyLoadCellConfig, jsonString);
     } catch (e) {
       debugPrint('Error guardando configuración: $e');
@@ -27,11 +27,11 @@ class PersistenceService {
 
   Future<LoadCellConfig> loadConfig() async {
     try {
-      final prefs = await SharedPreferences.getInstance();
-      final jsonString = prefs.getString(_keyLoadCellConfig);
+      final SharedPreferences prefs = await SharedPreferences.getInstance();
+      final String? jsonString = prefs.getString(_keyLoadCellConfig);
 
       if (jsonString != null) {
-        final map = jsonDecode(jsonString) as Map<String, dynamic>;
+        final Map<String, dynamic> map = jsonDecode(jsonString) as Map<String, dynamic>;
         return LoadCellConfig.fromMap(map);
       }
     } catch (e) {
@@ -43,8 +43,8 @@ class PersistenceService {
 
   Future<void> saveCalibration(CalibrationModel calibration) async {
     try {
-      final prefs = await SharedPreferences.getInstance();
-      final jsonString = jsonEncode(calibration.toMap());
+      final SharedPreferences prefs = await SharedPreferences.getInstance();
+      final String jsonString = jsonEncode(calibration.toMap());
       await prefs.setString(_keyCalibration, jsonString);
     } catch (e) {
       debugPrint('Error guardando calibración: $e');
@@ -53,11 +53,11 @@ class PersistenceService {
 
   Future<CalibrationModel> loadCalibration() async {
     try {
-      final prefs = await SharedPreferences.getInstance();
-      final jsonString = prefs.getString(_keyCalibration);
+      final SharedPreferences prefs = await SharedPreferences.getInstance();
+      final String? jsonString = prefs.getString(_keyCalibration);
 
       if (jsonString != null) {
-        final map = jsonDecode(jsonString) as Map<String, dynamic>;
+        final Map<String, dynamic> map = jsonDecode(jsonString) as Map<String, dynamic>;
         return CalibrationModel.fromMap(map);
       }
     } catch (e) {
@@ -69,8 +69,8 @@ class PersistenceService {
 
   Future<void> saveFilters(FilterParams filters) async {
     try {
-      final prefs = await SharedPreferences.getInstance();
-      final jsonString = jsonEncode(filters.toMap());
+      final SharedPreferences prefs = await SharedPreferences.getInstance();
+      final String jsonString = jsonEncode(filters.toMap());
       await prefs.setString(_keyFilterParams, jsonString);
     } catch (e) {
       debugPrint('Error guardando filtros: $e');
@@ -79,11 +79,11 @@ class PersistenceService {
 
   Future<FilterParams> loadFilters() async {
     try {
-      final prefs = await SharedPreferences.getInstance();
-      final jsonString = prefs.getString(_keyFilterParams);
+      final SharedPreferences prefs = await SharedPreferences.getInstance();
+      final String? jsonString = prefs.getString(_keyFilterParams);
 
       if (jsonString != null) {
-        final map = jsonDecode(jsonString) as Map<String, dynamic>;
+        final Map<String, dynamic> map = jsonDecode(jsonString) as Map<String, dynamic>;
         return FilterParams.fromMap(map);
       }
     } catch (e) {
@@ -95,7 +95,7 @@ class PersistenceService {
 
   Future<void> clearAll() async {
     try {
-      final prefs = await SharedPreferences.getInstance();
+      final SharedPreferences prefs = await SharedPreferences.getInstance();
       await prefs.remove(_keyLoadCellConfig);
       await prefs.remove(_keyCalibration);
       await prefs.remove(_keyFilterParams);
@@ -107,8 +107,8 @@ class PersistenceService {
   // --------- NUEVO: Calibración de fábrica ---------
   Future<void> saveFactoryCalibration(CalibrationModel model) async {
     try {
-      final prefs = await SharedPreferences.getInstance();
-      final jsonString = jsonEncode(model.toJson());
+      final SharedPreferences prefs = await SharedPreferences.getInstance();
+      final String jsonString = jsonEncode(model.toJson());
       await prefs.setString(_keyFactoryCalibration, jsonString);
     } catch (e) {
       debugPrint('Error guardando calibración de fábrica: $e');
@@ -117,8 +117,8 @@ class PersistenceService {
 
   Future<CalibrationModel?> loadFactoryCalibration() async {
     try {
-      final prefs = await SharedPreferences.getInstance();
-      final jsonString = prefs.getString(_keyFactoryCalibration);
+      final SharedPreferences prefs = await SharedPreferences.getInstance();
+      final String? jsonString = prefs.getString(_keyFactoryCalibration);
       if (jsonString == null) return null;
       final Map<String, dynamic> jsonMap = jsonDecode(jsonString);
       return CalibrationModel.fromJson(jsonMap);
@@ -136,8 +136,8 @@ class PersistenceService {
   Future<void> saveSessionJson(
       String id, Map<String, dynamic> sessionMap) async {
     try {
-      final prefs = await SharedPreferences.getInstance();
-      final jsonString = jsonEncode(sessionMap);
+      final SharedPreferences prefs = await SharedPreferences.getInstance();
+      final String jsonString = jsonEncode(sessionMap);
       await prefs.setString('$_keySessionsPrefix$id', jsonString);
 
       // Actualizar lista de IDs de sesiones
@@ -154,12 +154,12 @@ class PersistenceService {
   /// Carga todas las sesiones guardadas
   Future<List<Map<String, dynamic>>> loadAllSessions() async {
     try {
-      final prefs = await SharedPreferences.getInstance();
+      final SharedPreferences prefs = await SharedPreferences.getInstance();
       List<String> sessionIds = await _loadSessionIdsList();
-      List<Map<String, dynamic>> sessions = [];
+      List<Map<String, dynamic>> sessions = <Map<String, dynamic>>[];
 
       for (String id in sessionIds) {
-        final jsonString = prefs.getString('$_keySessionsPrefix$id');
+        final String? jsonString = prefs.getString('$_keySessionsPrefix$id');
         if (jsonString != null) {
           sessions.add(jsonDecode(jsonString) as Map<String, dynamic>);
         }
@@ -168,14 +168,14 @@ class PersistenceService {
       return sessions;
     } catch (e) {
       debugPrint('Error cargando sesiones: $e');
-      return [];
+      return <Map<String, dynamic>>[];
     }
   }
 
   /// Elimina una sesión por ID
   Future<void> removeSession(String id) async {
     try {
-      final prefs = await SharedPreferences.getInstance();
+      final SharedPreferences prefs = await SharedPreferences.getInstance();
       await prefs.remove('$_keySessionsPrefix$id');
 
       // Actualizar lista de IDs
@@ -190,15 +190,15 @@ class PersistenceService {
   /// Carga la lista de IDs de sesiones
   Future<List<String>> _loadSessionIdsList() async {
     try {
-      final prefs = await SharedPreferences.getInstance();
-      final jsonString = prefs.getString(_keySessionsList);
+      final SharedPreferences prefs = await SharedPreferences.getInstance();
+      final String? jsonString = prefs.getString(_keySessionsList);
       if (jsonString != null) {
         return List<String>.from(jsonDecode(jsonString));
       }
     } catch (e) {
       debugPrint('Error cargando lista de sesiones: $e');
     }
-    return [];
+    return <String>[];
   }
 
   /// Genera CSV a partir de una sesión (devuelve String)
@@ -211,13 +211,13 @@ class PersistenceService {
           'Fecha,Hora,Tipo,PesoBruto(kg),PesoNeto(kg),Tara(kg),Patente,Producto,Nota');
 
       // Datos de pesadas
-      final pesadas = sessionMap['pesadas'] as List<dynamic>? ?? [];
+      final List<dynamic> pesadas = sessionMap['pesadas'] as List<dynamic>? ?? <dynamic>[];
       for (var pesada in pesadas) {
-        final timestamp = DateTime.parse(
+        final DateTime timestamp = DateTime.parse(
             pesada['timestamp'] ?? DateTime.now().toIso8601String());
-        final fecha =
+        final String fecha =
             '${timestamp.year}-${timestamp.month.toString().padLeft(2, '0')}-${timestamp.day.toString().padLeft(2, '0')}';
-        final hora =
+        final String hora =
             '${timestamp.hour.toString().padLeft(2, '0')}:${timestamp.minute.toString().padLeft(2, '0')}:${timestamp.second.toString().padLeft(2, '0')}';
         final tipo = pesada['tipo'] ?? '';
         final pesoBruto = pesada['pesoBruto'] ?? 0.0;

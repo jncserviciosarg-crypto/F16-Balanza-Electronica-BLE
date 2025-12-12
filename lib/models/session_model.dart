@@ -38,14 +38,14 @@ class SessionModel {
     required this.pesoInicial,
     required this.pesoFinal,
   }) {
-    if (!['carga', 'descarga'].contains(tipo)) {
+    if (!<String>['carga', 'descarga'].contains(tipo)) {
       throw ArgumentError('Tipo de sesión debe ser: carga o descarga');
     }
   }
 
   /// Calcula el peso total de todas las pesadas
   double get pesoTotal {
-    return pesadas.fold(0.0, (sum, pesada) => sum + pesada.peso);
+    return pesadas.fold(0.0, (double sum, SessionWeight pesada) => sum + pesada.peso);
   }
 
   /// Calcula el peso neto (diferencia entre peso final e inicial)
@@ -67,8 +67,8 @@ class SessionModel {
   ///
   /// Ejemplo: 20251123232524_29870
   static String generateSessionId(DateTime endDateTime, double totalWeight) {
-    final timestamp = DateFormat('yyyyMMddHHmmss').format(endDateTime);
-    final weightRounded = totalWeight.round();
+    final String timestamp = DateFormat('yyyyMMddHHmmss').format(endDateTime);
+    final int weightRounded = totalWeight.round();
     return '${timestamp}_$weightRounded';
   }
 
@@ -90,7 +90,7 @@ class SessionModel {
       producto: producto,
       chofer: chofer,
       notas: notas,
-      pesadas: [],
+      pesadas: <SessionWeight>[],
       pesoInicial: pesoInicial,
       pesoFinal: 0.0,
     );
@@ -127,7 +127,7 @@ class SessionModel {
 
   /// Convierte la sesión a un mapa JSON
   Map<String, dynamic> toMap() {
-    return {
+    return <String, dynamic>{
       'id': id,
       'tipo': tipo,
       'fechaInicio': fechaInicio.toIso8601String(),
@@ -136,7 +136,7 @@ class SessionModel {
       'producto': producto,
       'chofer': chofer,
       'notas': notas,
-      'pesadas': pesadas.map((p) => p.toMap()).toList(),
+      'pesadas': pesadas.map((SessionWeight p) => p.toMap()).toList(),
       'pesoInicial': pesoInicial,
       'pesoFinal': pesoFinal,
     };
@@ -158,7 +158,7 @@ class SessionModel {
       pesadas: (map['pesadas'] as List<dynamic>?)
               ?.map((p) => SessionWeight.fromMap(p as Map<String, dynamic>))
               .toList() ??
-          [],
+          <SessionWeight>[],
       pesoInicial: (map['pesoInicial'] ?? 0.0).toDouble(),
       pesoFinal: (map['pesoFinal'] ?? 0.0).toDouble(),
     );

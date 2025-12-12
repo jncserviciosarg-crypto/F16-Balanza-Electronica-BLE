@@ -54,15 +54,15 @@ class PairingVariant {
     }
   }
 
-  static const Error = PairingVariant._(-1);
-  static const Pin = PairingVariant._(0);
-  static const Passkey = PairingVariant._(1);
-  static const PasskeyConfirmation = PairingVariant._(2);
-  static const Consent = PairingVariant._(3);
-  static const DisplayPasskey = PairingVariant._(4);
-  static const DisplayPin = PairingVariant._(5);
-  static const OOB = PairingVariant._(6);
-  static const Pin16Digits = PairingVariant._(7);
+  static const PairingVariant Error = PairingVariant._(-1);
+  static const PairingVariant Pin = PairingVariant._(0);
+  static const PairingVariant Passkey = PairingVariant._(1);
+  static const PairingVariant PasskeyConfirmation = PairingVariant._(2);
+  static const PairingVariant Consent = PairingVariant._(3);
+  static const PairingVariant DisplayPasskey = PairingVariant._(4);
+  static const PairingVariant DisplayPin = PairingVariant._(5);
+  static const PairingVariant OOB = PairingVariant._(6);
+  static const PairingVariant Pin16Digits = PairingVariant._(7);
 
   // operator ==(Object other) {
   //   return other is PairingVariant && other.underlyingValue == this.underlyingValue;

@@ -1,3 +1,5 @@
+import 'dart:typed_data';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_bluetooth_serial/flutter_bluetooth_serial.dart';
 import '../services/bluetooth_service.dart';
@@ -12,12 +14,12 @@ class BluetoothScreen extends StatefulWidget {
 
 class _BluetoothScreenState extends State<BluetoothScreen> {
   final BluetoothService _bluetoothService = BluetoothService();
-  List<BluetoothDevice> _devices = [];
+  List<BluetoothDevice> _devices = <BluetoothDevice>[];
   bool _isScanning = false;
   bool _isConnected = false;
   String? _connectedDeviceName;
   int _ultimoADC = 0;
-  final _screenshotKey = GlobalKey();
+  final GlobalKey<State<StatefulWidget>> _screenshotKey = GlobalKey();
 
   @override
   void initState() {
@@ -25,7 +27,7 @@ class _BluetoothScreenState extends State<BluetoothScreen> {
     _checkBluetoothAndLoadDevices();
 
     // Escuchar cambios de conexión
-    _bluetoothService.connectionStream.listen((connected) {
+    _bluetoothService.connectionStream.listen((bool connected) {
       if (mounted) {
         setState(() {
           _isConnected = connected;
@@ -37,7 +39,7 @@ class _BluetoothScreenState extends State<BluetoothScreen> {
     });
 
     // Escuchar valores ADC
-    _bluetoothService.adcStream.listen((adc) {
+    _bluetoothService.adcStream.listen((int adc) {
       if (mounted) {
         setState(() {
           _ultimoADC = adc;
@@ -48,7 +50,7 @@ class _BluetoothScreenState extends State<BluetoothScreen> {
 
   Future<void> _checkBluetoothAndLoadDevices() async {
     // Verificar permisos primero
-    final hasPermissions = await _bluetoothService.checkAndRequestPermissions();
+    final bool hasPermissions = await _bluetoothService.checkAndRequestPermissions();
     if (!hasPermissions) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -112,7 +114,7 @@ class _BluetoothScreenState extends State<BluetoothScreen> {
 
   Future<void> _connectToDevice(BluetoothDevice device) async {
     // Verificar permisos antes de conectar
-    final hasPermissions = await _bluetoothService.checkAndRequestPermissions();
+    final bool hasPermissions = await _bluetoothService.checkAndRequestPermissions();
     if (!hasPermissions) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -130,7 +132,7 @@ class _BluetoothScreenState extends State<BluetoothScreen> {
     showDialog(
       context: context,
       barrierDismissible: false,
-      builder: (context) => const Center(
+      builder: (BuildContext context) => const Center(
         child: CircularProgressIndicator(),
       ),
     );
@@ -190,7 +192,7 @@ class _BluetoothScreenState extends State<BluetoothScreen> {
             ),
           ),
           backgroundColor: Colors.blueGrey[800], // F-16: azul militar
-          actions: [
+          actions: <Widget>[
             IconButton(
               icon: Icon(Icons.refresh, color: Colors.grey[400]), // F-16
               onPressed: _isConnected ? null : _loadPairedDevices,
@@ -198,7 +200,7 @@ class _BluetoothScreenState extends State<BluetoothScreen> {
             IconButton(
               icon: Icon(Icons.camera_alt, color: Colors.grey[400]), // F-16
               onPressed: () async {
-                final bytes =
+                final Uint8List? bytes =
                     await ScreenshotHelper.captureWidget(_screenshotKey);
                 if (bytes != null) {
                   await ScreenshotHelper.sharePng(bytes,
@@ -218,7 +220,7 @@ class _BluetoothScreenState extends State<BluetoothScreen> {
         body: Container(
           color: Colors.grey[900], // F-16: fondo oscuro
           child: Column(
-            children: [
+            children: <Widget>[
               // F-16: PANEL DE ESTADO
               Container(
                 width: double.infinity,
@@ -231,7 +233,7 @@ class _BluetoothScreenState extends State<BluetoothScreen> {
                   ),
                 ),
                 child: Row(
-                  children: [
+                  children: <Widget>[
                     Icon(
                       _isConnected
                           ? Icons.bluetooth_connected
@@ -257,7 +259,7 @@ class _BluetoothScreenState extends State<BluetoothScreen> {
                         ),
                       ),
                     ),
-                    if (_isConnected) ...[
+                    if (_isConnected) ...<Widget>[
                       const SizedBox(width: 16),
                       Container(
                         padding: const EdgeInsets.symmetric(
@@ -319,7 +321,7 @@ class _BluetoothScreenState extends State<BluetoothScreen> {
                         ? Center(
                             child: Column(
                               mainAxisAlignment: MainAxisAlignment.center,
-                              children: [
+                              children: <Widget>[
                                 Icon(
                                   Icons.bluetooth_searching,
                                   size: 64,
@@ -360,7 +362,7 @@ class _BluetoothScreenState extends State<BluetoothScreen> {
                         : ListView.builder(
                             padding: const EdgeInsets.all(12),
                             itemCount: _devices.length,
-                            itemBuilder: (context, index) {
+                            itemBuilder: (BuildContext context, int index) {
                               BluetoothDevice device = _devices[index];
                               bool isCurrentDevice = _isConnected &&
                                   _connectedDeviceName ==

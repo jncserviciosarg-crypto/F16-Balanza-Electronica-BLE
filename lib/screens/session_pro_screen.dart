@@ -1,3 +1,4 @@
+import 'package:f16_balanza_electronica/models/weight_state.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:share_plus/share_plus.dart';
@@ -27,16 +28,16 @@ class SessionProScreen extends StatefulWidget {
 
 class _SessionProScreenState extends State<SessionProScreen> {
   late SessionModel _session;
-  final _formKey = GlobalKey<FormState>();
+  final GlobalKey<FormState> _formKey = GlobalKey<FormState>();
 
   // GlobalKey para captura de screenshot
-  final _screenshotKey = GlobalKey();
+  final GlobalKey<State<StatefulWidget>> _screenshotKey = GlobalKey();
 
   // Controladores de formulario
-  final _patenteController = TextEditingController();
-  final _productoController = TextEditingController();
-  final _choferController = TextEditingController();
-  final _notasController = TextEditingController();
+  final TextEditingController _patenteController = TextEditingController();
+  final TextEditingController _productoController = TextEditingController();
+  final TextEditingController _choferController = TextEditingController();
+  final TextEditingController _notasController = TextEditingController();
 
   static const int _maxPesadas = 100;
 
@@ -81,7 +82,7 @@ class _SessionProScreenState extends State<SessionProScreen> {
     _taraParcial = widget.pesoActual; // <- clave: parcial arranca en cero
 
     // Escuchar peso en tiempo real
-    _weightSubscription = _weightService.weightStateStream.listen((state) {
+    _weightSubscription = _weightService.weightStateStream.listen((WeightState state) {
       if (mounted) {
         setState(() {
           _pesoTiempoReal = state.peso;
@@ -139,12 +140,12 @@ class _SessionProScreenState extends State<SessionProScreen> {
                 fontSize: 14, // F-16: más compacto
               ),
             ),
-            actions: [
+            actions: <Widget>[
               IconButton(
                 icon: Icon(Icons.camera_alt,
                     size: 20, color: Colors.grey[400]), // F-16: icono gris
                 onPressed: () async {
-                  final bytes =
+                  final Uint8List? bytes =
                       await ScreenshotHelper.captureWidget(_screenshotKey);
                   if (bytes != null) {
                     await ScreenshotHelper.sharePng(bytes,
@@ -165,14 +166,14 @@ class _SessionProScreenState extends State<SessionProScreen> {
         // F-16: Layout responsive con LayoutBuilder
         body: SafeArea(
           child: LayoutBuilder(
-            builder: (context, constraints) {
-              final isMobile = constraints.maxWidth < 700;
+            builder: (BuildContext context, BoxConstraints constraints) {
+              final bool isMobile = constraints.maxWidth < 700;
 
               if (isMobile) {
                 // MÓVIL: Todo apilado verticalmente
                 return SingleChildScrollView(
                   child: Column(
-                    children: [
+                    children: <Widget>[
                       // Display peso (altura fija para móvil)
                       SizedBox(
                         height: constraints.maxHeight * 0.25,
@@ -182,7 +183,7 @@ class _SessionProScreenState extends State<SessionProScreen> {
                       SizedBox(
                         height: 200,
                         child: Row(
-                          children: [
+                          children: <Widget>[
                             Expanded(
                                 flex: 30,
                                 child:
@@ -210,19 +211,19 @@ class _SessionProScreenState extends State<SessionProScreen> {
                 // TABLET/DESKTOP: Layout horizontal original
                 return Row(
                   crossAxisAlignment: CrossAxisAlignment.stretch,
-                  children: [
+                  children: <Widget>[
                     // Panel izquierdo
                     Expanded(
                       flex: 67,
                       child: Column(
-                        children: [
+                        children: <Widget>[
                           Expanded(
                             flex: 50,
                             child: Row(
-                              children: [
+                              children: <Widget>[
                                 Expanded(
                                   flex: 30,
-                                  child: Column(children: [
+                                  child: Column(children: <Widget>[
                                     Expanded(
                                         flex: 10,
                                         child: _buildBotonAgregarVertical()),
@@ -248,7 +249,7 @@ class _SessionProScreenState extends State<SessionProScreen> {
                     Expanded(
                       flex: 33,
                       child: Column(
-                        children: [
+                        children: <Widget>[
                           Expanded(child: _buildListadoCompacto()),
                           _buildResumenCompacto(),
                           _buildBotonFinalizarCompacto(),
@@ -270,9 +271,9 @@ class _SessionProScreenState extends State<SessionProScreen> {
   // ═══════════════════════════════════════════════════════════════════
   Widget _buildDisplayPesoCompacto({bool isMobile = false}) {
     // F-16: tamaños responsivos
-    final fontSize = isMobile ? 60.0 : 100.0;
-    final labelSize = isMobile ? 14.0 : 18.0;
-    final spacing = isMobile ? 10.0 : 30.0;
+    final double fontSize = isMobile ? 60.0 : 100.0;
+    final double labelSize = isMobile ? 14.0 : 18.0;
+    final double spacing = isMobile ? 10.0 : 30.0;
 
     return Container(
       margin: const EdgeInsets.all(4), // F-16: más compacto
@@ -282,7 +283,7 @@ class _SessionProScreenState extends State<SessionProScreen> {
         borderRadius: BorderRadius.circular(4), // F-16: bordes angulares
         border: Border.all(
             color: Colors.blueGrey[600]!, width: 1), // F-16: azul militar fino
-        boxShadow: [
+        boxShadow: <BoxShadow>[
           BoxShadow(
             color: Colors.blueGrey.withOpacity(0.15), // F-16: glow HUD sutil
             blurRadius: 8,
@@ -295,13 +296,13 @@ class _SessionProScreenState extends State<SessionProScreen> {
           fit: BoxFit.scaleDown,
           child: Row(
             mainAxisAlignment: MainAxisAlignment.center,
-            children: [
+            children: <Widget>[
               // PESO ACTUAL
               Column(
                 mainAxisAlignment: MainAxisAlignment.center,
-                children: [
+                children: <Widget>[
                   Row(
-                    children: [
+                    children: <Widget>[
                       Text(
                         'ACTUAL',
                         style: TextStyle(
@@ -340,9 +341,9 @@ class _SessionProScreenState extends State<SessionProScreen> {
               // PESO PARCIAL
               Column(
                 mainAxisAlignment: MainAxisAlignment.center,
-                children: [
+                children: <Widget>[
                   Row(
-                    children: [
+                    children: <Widget>[
                       Text(
                         'PARCIAL',
                         style: TextStyle(
@@ -388,17 +389,17 @@ class _SessionProScreenState extends State<SessionProScreen> {
   // 2️⃣ BOTONES F-16 RESPONSIVE
   // ═══════════════════════════════════════════════════════════════════
   Widget _buildBotonAgregarVertical({bool isMobile = false}) {
-    final canAdd = _session.pesadas.length < _maxPesadas;
+    final bool canAdd = _session.pesadas.length < _maxPesadas;
 
-    final iconSize = isMobile ? 24.0 : 28.0; // F-16: iconos grandes
-    final fontSize = isMobile ? 10.0 : 11.5;
+    final double iconSize = isMobile ? 24.0 : 28.0; // F-16: iconos grandes
+    final double fontSize = isMobile ? 10.0 : 11.5;
 
     return Container(
       margin: const EdgeInsets.all(3),
       //     margin: const EdgeInsets.only(
       //         left: 1, bottom: 1, top: 1, right: 1), // F-16: compacto
       child: Column(
-        children: [
+        children: <Widget>[
           // Botón AGREGAR
           Expanded(
             child: ElevatedButton(
@@ -416,7 +417,7 @@ class _SessionProScreenState extends State<SessionProScreen> {
                 child: Column(
                   mainAxisSize: MainAxisSize.min,
                   mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
+                  children: <Widget>[
                     Icon(
                       Icons.add_circle_outline,
                       size: iconSize,
@@ -457,11 +458,11 @@ class _SessionProScreenState extends State<SessionProScreen> {
 
   Widget _buildTaraParcialHoldButton({bool isMobile = false}) {
     // F-16: cian militar oscuro
-    final baseColor = Colors.cyan[700]!;
-    final progressColor =
+    final Color baseColor = Colors.cyan[700]!;
+    final Color progressColor =
         Color.lerp(Colors.grey[800], baseColor, _taraHoldProgress) ?? baseColor;
-    final iconSize = isMobile ? 24.0 : 28.0;
-    final fontSize = isMobile ? 10.0 : 11.5;
+    final double iconSize = isMobile ? 24.0 : 28.0;
+    final double fontSize = isMobile ? 10.0 : 11.5;
 
     return Container(
       margin: const EdgeInsets.all(3),
@@ -476,7 +477,7 @@ class _SessionProScreenState extends State<SessionProScreen> {
           decoration: BoxDecoration(
             color: progressColor,
             borderRadius: BorderRadius.circular(4), // F-16: angular
-            boxShadow: [
+            boxShadow: <BoxShadow>[
               BoxShadow(
                 color: baseColor.withOpacity(0.2),
                 blurRadius: 6, // F-16: glow sutil
@@ -485,7 +486,7 @@ class _SessionProScreenState extends State<SessionProScreen> {
             ],
           ),
           child: Stack(
-            children: [
+            children: <Widget>[
               // Barra de progreso
               if (_taraHoldInProgress)
                 Align(
@@ -508,7 +509,7 @@ class _SessionProScreenState extends State<SessionProScreen> {
                 child: Column(
                   mainAxisSize: MainAxisSize.min,
                   mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
+                  children: <Widget>[
                     Icon(
                       _taraHoldProgress >= 1.0
                           ? Icons.check_circle_outline
@@ -545,7 +546,7 @@ class _SessionProScreenState extends State<SessionProScreen> {
     setState(() {});
 
     int elapsed = 0;
-    _taraProgressTimer = Timer.periodic(const Duration(milliseconds: 100), (t) {
+    _taraProgressTimer = Timer.periodic(const Duration(milliseconds: 100), (Timer t) {
       elapsed += 100;
       _taraHoldProgress = (elapsed / _taraHoldMillis).clamp(0.0, 1.0);
       if (_taraHoldProgress >= 1.0) {
@@ -605,12 +606,12 @@ class _SessionProScreenState extends State<SessionProScreen> {
     HapticFeedback.lightImpact();
 
     // Usar peso parcial (tareado)
-    final peso = _pesoParcial;
-    final nuevaPesada = SessionWeight.create(peso: peso);
+    final double peso = _pesoParcial;
+    final SessionWeight nuevaPesada = SessionWeight.create(peso: peso);
 
     setState(() {
       _session = _session.copyWith(
-        pesadas: [..._session.pesadas, nuevaPesada],
+        pesadas: <SessionWeight>[..._session.pesadas, nuevaPesada],
       );
       // Resetear parcial (actualizar taraParcial al peso actual)
       // esto hace que _pesoParcial vuelva a cero inmediatamente después de guardar
@@ -631,7 +632,7 @@ class _SessionProScreenState extends State<SessionProScreen> {
   // 3️⃣ FORMULARIO F-16
   // ═══════════════════════════════════════════════════════════════════
   Widget _buildFormularioCompacto({bool isMobile = false}) {
-    final fieldHeight = isMobile ? 38.0 : 42.0;
+    final double fieldHeight = isMobile ? 38.0 : 42.0;
 
     return Container(
       margin: const EdgeInsets.all(2),
@@ -646,7 +647,7 @@ class _SessionProScreenState extends State<SessionProScreen> {
         child: SingleChildScrollView(
           // 👈 aquí
           child: Column(
-            children: [
+            children: <Widget>[
               SizedBox(
                 height: fieldHeight,
                 child: _buildTextFieldCompacto(
@@ -698,7 +699,7 @@ class _SessionProScreenState extends State<SessionProScreen> {
       controller: controller,
       maxLines: 1,
       maxLength: 30,
-      inputFormatters: [LengthLimitingTextInputFormatter(30)],
+      inputFormatters: <TextInputFormatter>[LengthLimitingTextInputFormatter(30)],
       style: const TextStyle(
           color: Colors.white, fontSize: 14, fontWeight: FontWeight.w500),
       decoration: InputDecoration(
@@ -738,7 +739,7 @@ class _SessionProScreenState extends State<SessionProScreen> {
       controller: controller,
       maxLines: 10,
       maxLength: 300,
-      inputFormatters: [LengthLimitingTextInputFormatter(300)],
+      inputFormatters: <TextInputFormatter>[LengthLimitingTextInputFormatter(300)],
       style: const TextStyle(
           color: Colors.white, fontSize: 14, fontWeight: FontWeight.w500),
       decoration: InputDecoration(
@@ -785,7 +786,7 @@ class _SessionProScreenState extends State<SessionProScreen> {
         child: Center(
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
-            children: [
+            children: <Widget>[
               Icon(Icons.scale, size: 40, color: Colors.blueGrey[700]), // F-16
               const SizedBox(height: 8),
               Text(
@@ -817,7 +818,7 @@ class _SessionProScreenState extends State<SessionProScreen> {
         border: Border.all(color: Colors.blueGrey[800]!),
       ),
       child: Column(
-        children: [
+        children: <Widget>[
           // Encabezado F-16
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
@@ -827,7 +828,7 @@ class _SessionProScreenState extends State<SessionProScreen> {
                   const BorderRadius.vertical(top: Radius.circular(4)),
             ),
             child: const Row(
-              children: [
+              children: <Widget>[
                 SizedBox(
                   width: 30,
                   child: Text(
@@ -885,7 +886,7 @@ class _SessionProScreenState extends State<SessionProScreen> {
           Expanded(
             child: ListView.builder(
               itemCount: _session.pesadas.length,
-              itemBuilder: (context, index) {
+              itemBuilder: (BuildContext context, int index) {
                 return SessionWeightRow(
                   numero: index + 1,
                   pesada: _session.pesadas[index],
@@ -902,7 +903,7 @@ class _SessionProScreenState extends State<SessionProScreen> {
   void _eliminarPesada(int index) {
     showDialog(
       context: context,
-      builder: (context) => AlertDialog(
+      builder: (BuildContext context) => AlertDialog(
         backgroundColor: Colors.grey[900], // F-16: fondo oscuro
         title: const Text('ELIMINAR PESADA', // F-16: MAYÚSCULAS
             style: TextStyle(
@@ -913,7 +914,7 @@ class _SessionProScreenState extends State<SessionProScreen> {
           '¿Eliminar pesada #${index + 1}?\n${_formatWeight(_session.pesadas[index].peso)} kg',
           style: const TextStyle(color: Colors.white70),
         ),
-        actions: [
+        actions: <Widget>[
           TextButton(
             onPressed: () => Navigator.pop(context),
             child: Text('CANCELAR',
@@ -922,7 +923,7 @@ class _SessionProScreenState extends State<SessionProScreen> {
           TextButton(
             onPressed: () {
               setState(() {
-                final nuevasPesadas =
+                final List<SessionWeight> nuevasPesadas =
                     List<SessionWeight>.from(_session.pesadas);
                 nuevasPesadas.removeAt(index);
                 _session = _session.copyWith(pesadas: nuevasPesadas);
@@ -943,10 +944,10 @@ class _SessionProScreenState extends State<SessionProScreen> {
   // 5️⃣ RESUMEN F-16
   // ═══════════════════════════════════════════════════════════════════
   Widget _buildResumenCompacto({bool isMobile = false}) {
-    final totalPesadas = _session.pesadas.length;
-    final totalKg = _session.pesadas.isEmpty
+    final int totalPesadas = _session.pesadas.length;
+    final double totalKg = _session.pesadas.isEmpty
         ? 0.0
-        : _session.pesadas.map((p) => p.peso).reduce((a, b) => a + b);
+        : _session.pesadas.map((SessionWeight p) => p.peso).reduce((double a, double b) => a + b);
 
     return Container(
       margin: const EdgeInsets.symmetric(horizontal: 4, vertical: 2),
@@ -957,10 +958,10 @@ class _SessionProScreenState extends State<SessionProScreen> {
         border: Border.all(color: Colors.blueGrey[800]!), // F-16
       ),
       child: Column(
-        children: [
+        children: <Widget>[
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
+            children: <Widget>[
               const Text(
                 'TOTAL PESADAS',
                 style: TextStyle(
@@ -984,7 +985,7 @@ class _SessionProScreenState extends State<SessionProScreen> {
           Divider(color: Colors.blueGrey[700], height: 8), // F-16
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
+            children: <Widget>[
               const Text(
                 'TOTAL KG',
                 style: TextStyle(
@@ -1014,7 +1015,7 @@ class _SessionProScreenState extends State<SessionProScreen> {
   // 6️⃣ BOTÓN FINALIZAR F-16
   // ═══════════════════════════════════════════════════════════════════
   Widget _buildBotonFinalizarCompacto({bool isMobile = false}) {
-    final canFinalize = _session.pesadas.isNotEmpty;
+    final bool canFinalize = _session.pesadas.isNotEmpty;
 
     return Container(
       width: double.infinity,
@@ -1032,7 +1033,7 @@ class _SessionProScreenState extends State<SessionProScreen> {
         ),
         child: Row(
           mainAxisAlignment: MainAxisAlignment.center,
-          children: [
+          children: <Widget>[
             const Icon(Icons.check_circle_outline,
                 size: 22, color: Colors.white), // F-16: icono outline
             const SizedBox(width: 8),
@@ -1060,14 +1061,14 @@ class _SessionProScreenState extends State<SessionProScreen> {
     }
 
     // Calcular datos finales
-    final fechaFinalizacion = DateTime.now();
-    final totalKg = _session.pesadas.map((p) => p.peso).reduce((a, b) => a + b);
+    final DateTime fechaFinalizacion = DateTime.now();
+    final double totalKg = _session.pesadas.map((SessionWeight p) => p.peso).reduce((double a, double b) => a + b);
 
     // Generar nuevo ID determinista basado en timestamp + peso
-    final nuevoId = SessionModel.generateSessionId(fechaFinalizacion, totalKg);
+    final String nuevoId = SessionModel.generateSessionId(fechaFinalizacion, totalKg);
 
     // Actualizar datos del formulario
-    final sessionFinal = _session.copyWith(
+    final SessionModel sessionFinal = _session.copyWith(
       id: nuevoId,
       fechaFin: fechaFinalizacion,
       pesoFinal: _session.pesadas.last.peso,
@@ -1087,10 +1088,10 @@ class _SessionProScreenState extends State<SessionProScreen> {
       await showDialog(
         context: context,
         barrierDismissible: false,
-        builder: (context) => AlertDialog(
+        builder: (BuildContext context) => AlertDialog(
           backgroundColor: Colors.grey[900], // F-16: fondo oscuro
           title: Row(
-            children: [
+            children: <Widget>[
               Icon(Icons.check_circle_outline,
                   color: Colors.green[700], size: 28), // F-16: verde militar
               const SizedBox(width: 12),
@@ -1104,7 +1105,7 @@ class _SessionProScreenState extends State<SessionProScreen> {
           content: Column(
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
+            children: <Widget>[
               Text('TIPO: ${sessionFinal.tipo.toUpperCase()}',
                   style: const TextStyle(
                       color: Colors.white70, fontSize: 14, letterSpacing: 1)),
@@ -1124,13 +1125,13 @@ class _SessionProScreenState extends State<SessionProScreen> {
               ),
             ],
           ),
-          actions: [
+          actions: <Widget>[
             TextButton(
               onPressed: () async {
                 try {
-                  final path = await SessionHistoryService()
+                  final String path = await SessionHistoryService()
                       .exportSessionToXlsx(sessionFinal);
-                  await Share.shareXFiles([XFile(path)],
+                  await Share.shareXFiles(<XFile>[XFile(path)],
                       text: 'Sesión XLSX - ${sessionFinal.id}');
                 } catch (e) {
                   if (mounted) {
@@ -1151,9 +1152,9 @@ class _SessionProScreenState extends State<SessionProScreen> {
             TextButton(
               onPressed: () async {
                 try {
-                  final path = await SessionHistoryService()
+                  final String path = await SessionHistoryService()
                       .exportSessionToPdf(sessionFinal);
-                  await Share.shareXFiles([XFile(path)],
+                  await Share.shareXFiles(<XFile>[XFile(path)],
                       text: 'Sesión PDF - ${sessionFinal.id}');
                 } catch (e) {
                   if (mounted) {

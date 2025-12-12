@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'dart:typed_data';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_bluetooth_serial/flutter_bluetooth_serial.dart';
@@ -40,7 +41,7 @@ class BackgroundCollectingTask extends Model {
   bool inProgress = false;
 
   BackgroundCollectingTask._fromConnection(this._connection) {
-    _connection.input!.listen((data) {
+    _connection.input!.listen((Uint8List data) {
       _buffer += data;
 
       while (true) {

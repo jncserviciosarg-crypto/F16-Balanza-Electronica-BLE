@@ -45,10 +45,10 @@ class BluetoothDeviceType {
 
   int toUnderlyingValue() => underlyingValue;
 
-  static const unknown = BluetoothDeviceType.fromUnderlyingValue(0);
-  static const classic = BluetoothDeviceType.fromUnderlyingValue(1);
-  static const le = BluetoothDeviceType.fromUnderlyingValue(2);
-  static const dual = BluetoothDeviceType.fromUnderlyingValue(3);
+  static const BluetoothDeviceType unknown = BluetoothDeviceType.fromUnderlyingValue(0);
+  static const BluetoothDeviceType classic = BluetoothDeviceType.fromUnderlyingValue(1);
+  static const BluetoothDeviceType le = BluetoothDeviceType.fromUnderlyingValue(2);
+  static const BluetoothDeviceType dual = BluetoothDeviceType.fromUnderlyingValue(3);
 
   @override
   operator ==(Object other) {

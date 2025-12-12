@@ -44,7 +44,7 @@ class _FilterEditorState extends State<FilterEditor> {
   }
 
   void _handleSave() {
-    final params = FilterParams(
+    final FilterParams params = FilterParams(
       muestras:
           int.tryParse(_muestrasController.text) ?? widget.initial.muestras,
       ventana: int.tryParse(_ventanaController.text) ?? widget.initial.ventana,
@@ -66,7 +66,7 @@ class _FilterEditorState extends State<FilterEditor> {
         padding: const EdgeInsets.all(16),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
+          children: <Widget>[
             const Text(
               'Filtros',
               style: TextStyle(

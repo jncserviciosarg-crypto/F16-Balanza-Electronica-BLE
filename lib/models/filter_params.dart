@@ -38,7 +38,7 @@ class FilterParams {
   }
 
   Map<String, dynamic> toMap() {
-    return {
+    return <String, dynamic>{
       'muestras': muestras,
       'ventana': ventana,
       'emaAlpha': emaAlpha,

@@ -46,7 +46,7 @@ class LoadCellConfig {
   }
 
   Map<String, dynamic> toMap() {
-    return {
+    return <String, dynamic>{
       'capacidadKg': capacidadKg,
       'sensibilidadMvV': sensibilidadMvV,
       'voltajeExcitacion': voltajeExcitacion,
