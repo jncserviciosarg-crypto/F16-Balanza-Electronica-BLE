@@ -17,6 +17,7 @@ dependencies:
   excel: ^2.1.0
   path_provider: ^2.1.0
   intl: ^0.18.1
+  shared_preferences: ^2.2.2  
   pdf: ^3.10.4
   printing: ^5.12.0
   device_info_plus: ^10.1.2
