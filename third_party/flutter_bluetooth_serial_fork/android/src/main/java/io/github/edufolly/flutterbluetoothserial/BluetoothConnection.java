@@ -12,12 +12,14 @@ import java.util.concurrent.TimeUnit;
 import android.bluetooth.BluetoothAdapter;
 import android.bluetooth.BluetoothDevice;
 import android.bluetooth.BluetoothSocket;
+import android.util.Log;
 
 /// Universal Bluetooth serial connection class (for Java)
 public abstract class BluetoothConnection
 {
+    private static final String TAG = "FlutterBluetoothSerialConnection";
     protected static final UUID DEFAULT_UUID = UUID.fromString("00001101-0000-1000-8000-00805F9B34FB");
-    // ETAPA B4: Socket connection timeout (10 seconds) and retry mechanism
+    // ETAPA C4: Socket connection timeout (10 seconds) and retry mechanism - configurable
     protected static final long SOCKET_CONNECT_TIMEOUT_MS = 10000; // 10 seconds
     protected static final int SOCKET_CONNECT_MAX_RETRIES = 1;      // 1 retry attempt
 
@@ -37,34 +39,40 @@ public abstract class BluetoothConnection
 
 
 
-    // @TODO . `connect` could be done perfored on the other thread
-    // @TODO . `connect` other methods than `createRfcommSocketToServiceRecord`, including hidden one raw `createRfcommSocket` (on channel).
-    // @TODO ? how about turning it into factoried?
     /// Connects to given device by hardware address
     public void connect(String address, UUID uuid) throws IOException {
         if (isConnected()) {
             throw new IOException("already connected");
         }
 
+        Log.d(TAG, "Attempting to connect to device: " + address + " with UUID: " + uuid);
+
         BluetoothDevice device = bluetoothAdapter.getRemoteDevice(address);
         if (device == null) {
             throw new IOException("device not found");
         }
 
-        // ETAPA B4: Implement socket connect with timeout and retry mechanism
+        Log.d(TAG, "Device found: " + device.getName() + " (" + device.getAddress() + ")");
+
+        // ETAPA C4: Implement socket connect with timeout and retry mechanism with improved logging
         IOException lastException = null;
         for (int attempt = 0; attempt <= SOCKET_CONNECT_MAX_RETRIES; attempt++) {
             try {
+                Log.d(TAG, "Connection attempt " + (attempt + 1) + " of " + (SOCKET_CONNECT_MAX_RETRIES + 1));
+                
                 BluetoothSocket socket = device.createRfcommSocketToServiceRecord(uuid);
                 if (socket == null) {
                     throw new IOException("socket creation failed");
                 }
+
+                Log.d(TAG, "Socket created successfully");
 
                 // Cancel discovery, even though we didn't start it
                 bluetoothAdapter.cancelDiscovery();
 
                 // Perform connect with timeout using FutureTask
                 FutureTask<Void> connectTask = new FutureTask<>(() -> {
+                    Log.d(TAG, "Executing socket.connect() in background thread");
                     socket.connect();
                     return null;
                 });
@@ -75,26 +83,36 @@ public abstract class BluetoothConnection
 
                 try {
                     // Wait for socket.connect() to complete within timeout
+                    Log.d(TAG, "Waiting for socket connection with timeout: " + SOCKET_CONNECT_TIMEOUT_MS + "ms");
                     connectTask.get(SOCKET_CONNECT_TIMEOUT_MS, TimeUnit.MILLISECONDS);
+                    Log.d(TAG, "Socket connection successful");
                 } catch (java.util.concurrent.TimeoutException e) {
+                    Log.w(TAG, "Socket connection timeout after " + SOCKET_CONNECT_TIMEOUT_MS + "ms");
                     connectThread.interrupt();
-                    try { socket.close(); } catch (Exception ex) {}
+                    try { socket.close(); } catch (Exception ex) {
+                        Log.w(TAG, "Error closing socket after timeout: " + ex.getMessage());
+                    }
                     throw new IOException("socket connect timeout after " + SOCKET_CONNECT_TIMEOUT_MS + "ms");
                 }
 
                 // Connection successful
+                Log.d(TAG, "Connection established, starting connection thread");
                 connectionThread = new ConnectionThread(socket);
                 connectionThread.start();
                 return;
 
             } catch (IOException e) {
+                Log.w(TAG, "IO Exception on attempt " + (attempt + 1) + ": " + e.getMessage());
                 lastException = e;
                 if (attempt < SOCKET_CONNECT_MAX_RETRIES) {
+                    Log.d(TAG, "Retrying connection after 500ms delay");
                     try { Thread.sleep(500); } catch (InterruptedException ex) { Thread.currentThread().interrupt(); }
                 }
             } catch (Exception e) {
+                Log.w(TAG, "Unexpected exception on attempt " + (attempt + 1) + ": " + e.getClass().getSimpleName() + " - " + e.getMessage());
                 lastException = new IOException("connection failed: " + e.getMessage(), e);
                 if (attempt < SOCKET_CONNECT_MAX_RETRIES) {
+                    Log.d(TAG, "Retrying connection after 500ms delay");
                     try { Thread.sleep(500); } catch (InterruptedException ex) { Thread.currentThread().interrupt(); }
                 }
             }
