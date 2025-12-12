@@ -439,20 +439,46 @@ public class FlutterBluetoothSerialPlugin implements FlutterPlugin, ActivityAwar
     EnsurePermissionsCallback pendingPermissionsEnsureCallbacks = null;
 
     private void ensurePermissions(EnsurePermissionsCallback callbacks) {
-        if (
-                ContextCompat.checkSelfPermission(activity,
-                        Manifest.permission.ACCESS_COARSE_LOCATION)
-                        != PackageManager.PERMISSION_GRANTED
-                        || ContextCompat.checkSelfPermission(activity,
-                        Manifest.permission.ACCESS_FINE_LOCATION)
-                        != PackageManager.PERMISSION_GRANTED) {
-            ActivityCompat.requestPermissions(activity,
-                    new String[]{Manifest.permission.ACCESS_COARSE_LOCATION, Manifest.permission.ACCESS_FINE_LOCATION},
-                    REQUEST_COARSE_LOCATION_PERMISSIONS);
-
-            pendingPermissionsEnsureCallbacks = callbacks;
-        } else {
+        // Android 12+ (API 31+) requires BLUETOOTH_CONNECT and BLUETOOTH_SCAN
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+            // Check if both Bluetooth permissions are granted
+            boolean hasBluetoothConnect = ContextCompat.checkSelfPermission(activity,
+                    Manifest.permission.BLUETOOTH_CONNECT) == PackageManager.PERMISSION_GRANTED;
+            boolean hasBluetoothScan = ContextCompat.checkSelfPermission(activity,
+                    Manifest.permission.BLUETOOTH_SCAN) == PackageManager.PERMISSION_GRANTED;
+            
+            if (!hasBluetoothConnect || !hasBluetoothScan) {
+                // Request both permissions
+                ActivityCompat.requestPermissions(activity,
+                        new String[]{
+                            Manifest.permission.BLUETOOTH_CONNECT,
+                            Manifest.permission.BLUETOOTH_SCAN
+                        },
+                        REQUEST_COARSE_LOCATION_PERMISSIONS);
+                
+                pendingPermissionsEnsureCallbacks = callbacks;
+                return;
+            }
+            
+            // Android 12+ doesn't require location, but keep for compatibility with 11 and below
             callbacks.onResult(true);
+        } else {
+            // Android 11 and below: check location permissions
+            if (
+                    ContextCompat.checkSelfPermission(activity,
+                            Manifest.permission.ACCESS_COARSE_LOCATION)
+                            != PackageManager.PERMISSION_GRANTED
+                            || ContextCompat.checkSelfPermission(activity,
+                            Manifest.permission.ACCESS_FINE_LOCATION)
+                            != PackageManager.PERMISSION_GRANTED) {
+                ActivityCompat.requestPermissions(activity,
+                        new String[]{Manifest.permission.ACCESS_COARSE_LOCATION, Manifest.permission.ACCESS_FINE_LOCATION},
+                        REQUEST_COARSE_LOCATION_PERMISSIONS);
+
+                pendingPermissionsEnsureCallbacks = callbacks;
+            } else {
+                callbacks.onResult(true);
+            }
         }
     }
 
@@ -967,20 +993,28 @@ public class FlutterBluetoothSerialPlugin implements FlutterPlugin, ActivityAwar
                         break;
                     }
 
-                    int id = ++lastConnectionId;
-                    BluetoothConnectionWrapper connection = new BluetoothConnectionWrapper(id, bluetoothAdapter);
-                    connections.put(id, connection);
-
-                    Log.d(TAG, "Connecting to " + address + " (id: " + id + ")");
-
-                    EXECUTOR.execute(() -> {
-                        try {
-                            connection.connect(address);
-                            MAIN_HANDLER.post(() -> result.success(id));
-                        } catch (Exception ex) {
-                            MAIN_HANDLER.post(() -> result.error("connect_error", ex.getMessage(), exceptionToString(ex)));
-                            connections.remove(id);
+                    // Validate permissions before attempting connection
+                    ensurePermissions(granted -> {
+                        if (!granted) {
+                            result.error("no_permissions", "Bluetooth connect requires BLUETOOTH_CONNECT permission (Android 12+) or location permissions (Android 11 and below)", null);
+                            return;
                         }
+
+                        int id = ++lastConnectionId;
+                        BluetoothConnectionWrapper connection = new BluetoothConnectionWrapper(id, bluetoothAdapter);
+                        connections.put(id, connection);
+
+                        Log.d(TAG, "Connecting to " + address + " (id: " + id + ")");
+
+                        EXECUTOR.execute(() -> {
+                            try {
+                                connection.connect(address);
+                                MAIN_HANDLER.post(() -> result.success(id));
+                            } catch (Exception ex) {
+                                MAIN_HANDLER.post(() -> result.error("connect_error", ex.getMessage(), exceptionToString(ex)));
+                                connections.remove(id);
+                            }
+                        });
                     });
                     break;
                 }
