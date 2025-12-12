@@ -243,21 +243,21 @@ class PaintStyle {
 
   Paint toPaint() {
     Paint paint = Paint();
-    if (this.isAntiAlias != true) paint.isAntiAlias = this.isAntiAlias;
-    if (this.color != const Color(_kColorDefault)) paint.color = this.color!;
-    if (this.blendMode != BlendMode.srcOver) paint.blendMode = this.blendMode;
-    if (this.style != PaintingStyle.fill) paint.style = this.style;
-    if (this.strokeWidth != 0.0) paint.strokeWidth = this.strokeWidth;
-    if (this.strokeCap != StrokeCap.butt) paint.strokeCap = this.strokeCap;
-    if (this.strokeJoin != StrokeJoin.miter) paint.strokeJoin = this.strokeJoin;
-    if (this.strokeMiterLimit != 4.0)
-      paint.strokeMiterLimit = this.strokeMiterLimit;
-    if (this.maskFilter != null) paint.maskFilter = this.maskFilter;
-    if (this.filterQuality != FilterQuality.none)
-      paint.filterQuality = this.filterQuality;
-    if (this.shader != null) paint.shader = this.shader;
-    if (this.colorFilter != null) paint.colorFilter = this.colorFilter;
-    if (this.invertColors != false) paint.invertColors = this.invertColors;
+    if (isAntiAlias != true) paint.isAntiAlias = isAntiAlias;
+    if (color != const Color(_kColorDefault)) paint.color = color!;
+    if (blendMode != BlendMode.srcOver) paint.blendMode = blendMode;
+    if (style != PaintingStyle.fill) paint.style = style;
+    if (strokeWidth != 0.0) paint.strokeWidth = strokeWidth;
+    if (strokeCap != StrokeCap.butt) paint.strokeCap = strokeCap;
+    if (strokeJoin != StrokeJoin.miter) paint.strokeJoin = strokeJoin;
+    if (strokeMiterLimit != 4.0)
+      paint.strokeMiterLimit = strokeMiterLimit;
+    if (maskFilter != null) paint.maskFilter = maskFilter;
+    if (filterQuality != FilterQuality.none)
+      paint.filterQuality = filterQuality;
+    if (shader != null) paint.shader = shader;
+    if (colorFilter != null) paint.colorFilter = colorFilter;
+    if (invertColors != false) paint.invertColors = invertColors;
     return paint;
   }
 }

@@ -97,7 +97,7 @@ class _HistoryScreenState extends State<HistoryScreen> {
         backgroundColor: Colors.grey[900], // F-16: fondo oscuro
         title: Text(
           '${session.tipo.toUpperCase()} - SESIÓN ${session.id}',
-          style: TextStyle(
+          style: const TextStyle(
             color: Colors.white,
             fontWeight: FontWeight.bold,
             letterSpacing: 1.5, // F-16
@@ -213,7 +213,7 @@ class _HistoryScreenState extends State<HistoryScreen> {
       context: context,
       builder: (context) => AlertDialog(
         backgroundColor: Colors.grey[900], // F-16
-        title: Text(
+        title: const Text(
           'CONFIRMAR ELIMINACIÓN',
           style: TextStyle(
             color: Colors.white,
@@ -262,7 +262,7 @@ class _HistoryScreenState extends State<HistoryScreen> {
       context: context,
       builder: (context) => AlertDialog(
         backgroundColor: Colors.grey[900], // F-16
-        title: Text(
+        title: const Text(
           'CONFIRMAR ELIMINACIÓN',
           style: TextStyle(
             color: Colors.white,
@@ -429,7 +429,7 @@ class _HistoryScreenState extends State<HistoryScreen> {
                                       ),
                                       title: Text(
                                         '${session.tipo.toUpperCase()} • ${session.cantidadPesadas} PESADAS',
-                                        style: TextStyle(
+                                        style: const TextStyle(
                                           color: Colors.white,
                                           fontWeight: FontWeight.bold,
                                           fontSize: 14,

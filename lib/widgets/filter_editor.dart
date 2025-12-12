@@ -97,7 +97,7 @@ class _FilterEditorState extends State<FilterEditor> {
             const SizedBox(height: 8),
             TextField(
               controller: _emaAlphaController,
-              keyboardType: TextInputType.numberWithOptions(decimal: true),
+              keyboardType: const TextInputType.numberWithOptions(decimal: true),
               decoration: const InputDecoration(
                 labelText: 'EMA Alpha',
                 labelStyle: TextStyle(color: Colors.white70),

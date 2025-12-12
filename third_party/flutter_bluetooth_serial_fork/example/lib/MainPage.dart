@@ -14,7 +14,7 @@ import './SelectBondedDevicePage.dart';
 
 class MainPage extends StatefulWidget {
   @override
-  _MainPage createState() => new _MainPage();
+  _MainPage createState() => _MainPage();
 }
 
 class _MainPage extends State<MainPage> {
@@ -46,7 +46,7 @@ class _MainPage extends State<MainPage> {
       if ((await FlutterBluetoothSerial.instance.isEnabled) ?? false) {
         return false;
       }
-      await Future.delayed(Duration(milliseconds: 0xDD));
+      await Future.delayed(const Duration(milliseconds: 0xDD));
       return true;
     }).then((_) {
       // Update the address field
@@ -94,8 +94,8 @@ class _MainPage extends State<MainPage> {
       body: Container(
         child: ListView(
           children: <Widget>[
-            Divider(),
-            ListTile(title: const Text('General')),
+            const Divider(),
+            const ListTile(title: Text('General')),
             SwitchListTile(
               title: const Text('Enable Bluetooth'),
               value: _bluetoothState.isEnabled,
@@ -146,8 +146,8 @@ class _MainPage extends State<MainPage> {
                     value: _discoverableTimeoutSecondsLeft != 0,
                     onChanged: null,
                   ),
-                  IconButton(
-                    icon: const Icon(Icons.edit),
+                  const IconButton(
+                    icon: Icon(Icons.edit),
                     onPressed: null,
                   ),
                   IconButton(
@@ -166,7 +166,7 @@ class _MainPage extends State<MainPage> {
                         _discoverableTimeoutTimer?.cancel();
                         _discoverableTimeoutSecondsLeft = timeout;
                         _discoverableTimeoutTimer =
-                            Timer.periodic(Duration(seconds: 1), (Timer timer) {
+                            Timer.periodic(const Duration(seconds: 1), (Timer timer) {
                           setState(() {
                             if (_discoverableTimeoutSecondsLeft < 0) {
                               FlutterBluetoothSerial.instance.isDiscoverable
@@ -190,8 +190,8 @@ class _MainPage extends State<MainPage> {
                 ],
               ),
             ),
-            Divider(),
-            ListTile(title: const Text('Devices discovery and connection')),
+            const Divider(),
+            const ListTile(title: Text('Devices discovery and connection')),
             SwitchListTile(
               title: const Text('Auto-try specific pin when pairing'),
               subtitle: const Text('Pin 1234'),
@@ -223,7 +223,7 @@ class _MainPage extends State<MainPage> {
                         await Navigator.of(context).push(
                       MaterialPageRoute(
                         builder: (context) {
-                          return DiscoveryPage();
+                          return const DiscoveryPage();
                         },
                       ),
                     );
@@ -243,7 +243,7 @@ class _MainPage extends State<MainPage> {
                       await Navigator.of(context).push(
                     MaterialPageRoute(
                       builder: (context) {
-                        return SelectBondedDevicePage(checkAvailability: false);
+                        return const SelectBondedDevicePage(checkAvailability: false);
                       },
                     ),
                   );
@@ -257,8 +257,8 @@ class _MainPage extends State<MainPage> {
                 },
               ),
             ),
-            Divider(),
-            ListTile(title: const Text('Multiple connections example')),
+            const Divider(),
+            const ListTile(title: Text('Multiple connections example')),
             ListTile(
               title: ElevatedButton(
                 child: ((_collectingTask?.inProgress ?? false)
@@ -275,7 +275,7 @@ class _MainPage extends State<MainPage> {
                         await Navigator.of(context).push(
                       MaterialPageRoute(
                         builder: (context) {
-                          return SelectBondedDevicePage(
+                          return const SelectBondedDevicePage(
                               checkAvailability: false);
                         },
                       ),
@@ -342,8 +342,8 @@ class _MainPage extends State<MainPage> {
             title: const Text('Error occured while connecting'),
             content: Text("${ex.toString()}"),
             actions: <Widget>[
-              new TextButton(
-                child: new Text("Close"),
+              TextButton(
+                child: const Text("Close"),
                 onPressed: () {
                   Navigator.of(context).pop();
                 },

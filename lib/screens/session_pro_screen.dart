@@ -826,9 +826,9 @@ class _SessionProScreenState extends State<SessionProScreen> {
               borderRadius:
                   const BorderRadius.vertical(top: Radius.circular(4)),
             ),
-            child: Row(
+            child: const Row(
               children: [
-                const SizedBox(
+                SizedBox(
                   width: 30,
                   child: Text(
                     'Nº', // F-16: ya en mayúsculas
@@ -840,7 +840,7 @@ class _SessionProScreenState extends State<SessionProScreen> {
                     ),
                   ),
                 ),
-                const Expanded(
+                Expanded(
                   flex: 12,
                   child: Text(
                     'FECHA',
@@ -852,7 +852,7 @@ class _SessionProScreenState extends State<SessionProScreen> {
                     ),
                   ),
                 ),
-                const Expanded(
+                Expanded(
                   flex: 12,
                   child: Text(
                     'HORA',
@@ -864,7 +864,7 @@ class _SessionProScreenState extends State<SessionProScreen> {
                     ),
                   ),
                 ),
-                const Expanded(
+                Expanded(
                   flex: 10,
                   child: Text(
                     'PESO',
@@ -877,7 +877,7 @@ class _SessionProScreenState extends State<SessionProScreen> {
                     textAlign: TextAlign.right,
                   ),
                 ),
-                const SizedBox(width: 20),
+                SizedBox(width: 20),
               ],
             ),
           ),

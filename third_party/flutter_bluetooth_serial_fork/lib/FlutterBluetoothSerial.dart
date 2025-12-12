@@ -4,7 +4,7 @@ class FlutterBluetoothSerial {
   // Plugin
   static const String namespace = 'flutter_bluetooth_serial';
 
-  static FlutterBluetoothSerial _instance = new FlutterBluetoothSerial._();
+  static FlutterBluetoothSerial _instance = FlutterBluetoothSerial._();
 
   static FlutterBluetoothSerial get instance => _instance;
 
@@ -113,7 +113,7 @@ class FlutterBluetoothSerial {
         throw "pairing request handler already registered";
       }
       setPairingRequestHandler((BluetoothPairingRequest request) async {
-        Future.delayed(Duration(seconds: 1), () {
+        Future.delayed(const Duration(seconds: 1), () {
           setPairingRequestHandler(null);
         });
         if (pin != null) {
@@ -210,7 +210,7 @@ class FlutterBluetoothSerial {
     late StreamSubscription subscription;
     StreamController controller;
 
-    controller = new StreamController(
+    controller = StreamController(
       onCancel: () {
         // `cancelDiscovery` happens automaticly by platform code when closing event sink
         subscription.cancel();

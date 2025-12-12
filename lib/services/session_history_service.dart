@@ -894,7 +894,7 @@ class SessionHistoryService {
     doc.addPage(
       pw.Page(
         pageFormat: PdfPageFormat.a4,
-        margin: pw.EdgeInsets.all(24),
+        margin: const pw.EdgeInsets.all(24),
         build: (context) {
           return pw.Column(
             crossAxisAlignment: pw.CrossAxisAlignment.start,
@@ -912,7 +912,7 @@ class SessionHistoryService {
 
               // BLOQUE DE DATOS
               pw.Container(
-                padding: pw.EdgeInsets.all(12),
+                padding: const pw.EdgeInsets.all(12),
                 decoration: pw.BoxDecoration(
                   border: pw.Border.all(color: PdfColors.grey700),
                   borderRadius: pw.BorderRadius.circular(6),
@@ -963,32 +963,32 @@ class SessionHistoryService {
               pw.Table(
                 border: pw.TableBorder.all(color: PdfColors.grey),
                 columnWidths: {
-                  0: pw.FixedColumnWidth(40),
-                  1: pw.FixedColumnWidth(80),
-                  2: pw.FixedColumnWidth(80),
-                  3: pw.FlexColumnWidth(),
+                  0: const pw.FixedColumnWidth(40),
+                  1: const pw.FixedColumnWidth(80),
+                  2: const pw.FixedColumnWidth(80),
+                  3: const pw.FlexColumnWidth(),
                 },
                 children: [
                   // ENCABEZADO DE TABLA
                   pw.TableRow(
-                    decoration: pw.BoxDecoration(color: PdfColors.grey300),
+                    decoration: const pw.BoxDecoration(color: PdfColors.grey300),
                     children: [
                       pw.Padding(
-                        padding: pw.EdgeInsets.all(6),
+                        padding: const pw.EdgeInsets.all(6),
                         child: pw.Text('Nº',
                             style:
                                 pw.TextStyle(fontWeight: pw.FontWeight.bold)),
                       ),
                       pw.Padding(
-                        padding: pw.EdgeInsets.all(6),
+                        padding: const pw.EdgeInsets.all(6),
                         child: pw.Text('Fecha'),
                       ),
                       pw.Padding(
-                        padding: pw.EdgeInsets.all(6),
+                        padding: const pw.EdgeInsets.all(6),
                         child: pw.Text('Hora'),
                       ),
                       pw.Padding(
-                        padding: pw.EdgeInsets.all(6),
+                        padding: const pw.EdgeInsets.all(6),
                         child: pw.Align(
                           alignment: pw.Alignment.centerRight,
                           child: pw.Text('Peso (kg)'),
@@ -1011,19 +1011,19 @@ class SessionHistoryService {
                     return pw.TableRow(
                       children: [
                         pw.Padding(
-                          padding: pw.EdgeInsets.all(6),
+                          padding: const pw.EdgeInsets.all(6),
                           child: pw.Text('${i + 1}'),
                         ),
                         pw.Padding(
-                          padding: pw.EdgeInsets.all(6),
+                          padding: const pw.EdgeInsets.all(6),
                           child: pw.Text(fecha),
                         ),
                         pw.Padding(
-                          padding: pw.EdgeInsets.all(6),
+                          padding: const pw.EdgeInsets.all(6),
                           child: pw.Text(hora),
                         ),
                         pw.Padding(
-                          padding: pw.EdgeInsets.all(6),
+                          padding: const pw.EdgeInsets.all(6),
                           child: pw.Align(
                             alignment: pw.Alignment.centerRight,
                             child: pw.Text(pesoStr),

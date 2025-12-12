@@ -222,7 +222,7 @@ class _F16SplashScreenState extends State<F16SplashScreen>
                         // Cabecera mínima tipo HUD
                         Row(
                           children: [
-                            Text(
+                            const Text(
                               'AUTOPRUEBA',
                               style: TextStyle(
                                 color: Colors.white,
@@ -255,7 +255,7 @@ class _F16SplashScreenState extends State<F16SplashScreen>
                             // Reloj simple/contador (no funcional) - solo visual
                             Text(
                               _timestampLabel(),
-                              style: TextStyle(
+                              style: const TextStyle(
                                 color: Colors.white70,
                                 fontFamily: 'Courier',
                                 fontSize: 11,
