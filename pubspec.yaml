@@ -31,9 +31,9 @@ dev_dependencies:
 # Configuración del generador de íconos
 flutter_launcher_icons:
   android: "launcher_icon"
-  image_path: "assets/icon.png"
+  image_path: "assets/appstore.png"
   adaptive_icon_background: "#FFFFFF"
-  adaptive_icon_foreground: "assets/icon.png"
+  adaptive_icon_foreground: "assets/appstore.png"
 
 flutter:
   uses-material-design: true
