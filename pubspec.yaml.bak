@@ -1,0 +1,32 @@
+name: f16_balanza_electronica
+description: Una aplicación Flutter para medir y mostrar el peso de manera electrónica.
+publish_to: 'none' 
+
+version: 1.0.0+1
+
+environment:
+  sdk: ^3.6.0-313.0.dev
+
+dependencies:
+  flutter:
+    sdk: flutter
+
+  cupertino_icons: ^1.0.8
+  flutter_bluetooth_serial: ^0.4.0
+  shared_preferences: ^2.2.2
+  path_provider: ^2.1.1
+  intl: ^0.18.1
+  excel: ^2.1.0
+  share_plus: ^7.0.0
+  pdf: ^3.11.3
+  printing: ^5.11.0
+  permission_handler: ^11.0.1
+  device_info_plus: ^10.0.1
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^5.0.0
+
+flutter:
+  uses-material-design: true
