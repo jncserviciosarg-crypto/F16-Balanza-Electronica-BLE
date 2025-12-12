@@ -6,7 +6,7 @@ import 'bluetooth_adapter.dart' as btAdapter;
 /// el adaptador puede abstraer flutter_bluetooth_serial.
 
 void demonstrateBluetoothAdapterUsage() {
-  debugPrint('=== BluetoothAdapter Demo ===');
+  // Demo: ejemplo de uso del adaptador (log suprimido en build final)
   // En el futuro, esto permitirá cambiar entre implementaciones fácilmente:
   // - FlutterBluetoothSerialAdapter (actual)
   // - FlutterBluePlusAdapter (futura migración)

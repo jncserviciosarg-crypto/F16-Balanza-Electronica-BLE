@@ -137,13 +137,13 @@ class BluetoothService {
       _isConnected = true;
       _connectionController.add(true);
 
-      debugPrint('Conectado a $address');
+      // Información de conexión: omitida en build final
 
       // Iniciar lectura del stream si la conexión provee input
       _connection?.input?.listen(
         _onDataReceived,
         onDone: () {
-          debugPrint('Conexión cerrada');
+          // La conexión se cerró: manejar internamente
           _handleDisconnection();
         },
         onError: (error) {
@@ -202,7 +202,7 @@ class BluetoothService {
     try {
       await _connection?.close();
       _handleDisconnection();
-      debugPrint('Desconectado correctamente');
+      // Desconectado correctamente (log suprimido)
     } catch (e) {
       debugPrint('Error desconectando: $e');
       _handleDisconnection();

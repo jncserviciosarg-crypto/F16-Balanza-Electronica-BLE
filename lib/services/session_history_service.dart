@@ -486,7 +486,7 @@ class SessionHistoryService {
         throw Exception('Error al codificar archivo XLSX');
       }
 
-      debugPrint('XLSX generado: $filePath');
+      // XLSX generado: información suprimida en logs finales
       return filePath;
     } catch (e) {
       debugPrint('Error exportando sesión a XLSX: $e');
@@ -535,7 +535,7 @@ class SessionHistoryService {
         throw Exception('Error al codificar archivo XLSX');
       }
 
-      debugPrint('XLSX multi-hoja generado: $filePath');
+      // XLSX multi-hoja generado: información suprimida
       return filePath;
     } catch (e) {
       debugPrint('Error exportando todas las sesiones a XLSX: $e');
@@ -599,7 +599,7 @@ class SessionHistoryService {
         throw Exception('Error al codificar archivo XLSX');
       }
 
-      debugPrint('XLSX completo generado: $filePath');
+      // XLSX completo generado: información suprimida
       return filePath;
     } catch (e) {
       debugPrint('Error exportando todas las sesiones a XLSX: $e');
