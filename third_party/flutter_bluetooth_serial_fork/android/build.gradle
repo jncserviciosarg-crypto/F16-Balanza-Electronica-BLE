@@ -1,41 +1,34 @@
 group 'io.github.edufolly.flutterbluetoothserial'
 version '1.0-SNAPSHOT'
-buildscript {
-    repositories {
-        google()
-        jcenter()
-    }
 
-    dependencies {
-        classpath 'com.android.tools.build:gradle:4.1.0'
-    }
+plugins {
+    id 'com.android.library'
 }
-rootProject.allprojects {
-    repositories {
-        google()
-        jcenter()
-    }
+
+repositories {
+    google()
+    mavenCentral()
 }
-apply plugin: 'com.android.library'
 android {
     // Determinar compile/target SDK desde Flutter si están presentes, sino usar
-    // valores por defecto compatibles.
-    def flutterCompileSdk = (project.hasProperty('flutter.compileSdkVersion')) ? project['flutter.compileSdkVersion'] as int : 33
-    def flutterBuildTools = (project.hasProperty('flutter.buildToolsVersion')) ? project['flutter.buildToolsVersion'] : '33.0.0'
-    def flutterTargetSdk = (project.hasProperty('flutter.targetSdkVersion')) ? project['flutter.targetSdkVersion'] as int : 33
+    // valores por defecto compatibles con Android 14–16.
+    def flutterCompileSdk = (project.hasProperty('flutter.compileSdkVersion')) ? project['flutter.compileSdkVersion'] as int : 34
+    def flutterBuildTools = (project.hasProperty('flutter.buildToolsVersion')) ? project['flutter.buildToolsVersion'] : '34.0.0'
+    def flutterTargetSdk = (project.hasProperty('flutter.targetSdkVersion')) ? project['flutter.targetSdkVersion'] as int : 34
 
     // Migra a valores dinámicos proporcionados por Flutter (Android 12–16 ready)
     compileSdkVersion flutterCompileSdk
     buildToolsVersion flutterBuildTools
 
     namespace 'io.github.edufolly.flutterbluetoothserial'
+    
     compileOptions {
-        sourceCompatibility JavaVersion.VERSION_1_8
-        targetCompatibility JavaVersion.VERSION_1_8
+        sourceCompatibility JavaVersion.VERSION_11
+        targetCompatibility JavaVersion.VERSION_11
     }
     defaultConfig {
-        // Ajustado a API mínima moderna segura
-        minSdkVersion 21
+        // Ajustado a API mínima moderna: Android 7.0 (API 24)
+        minSdkVersion 24
         targetSdkVersion flutterTargetSdk
 
         // Requerido por AGP 8+
