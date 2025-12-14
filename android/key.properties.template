@@ -1,0 +1,29 @@
+# Release Keystore Configuration Template
+# ======================================
+# 
+# Este archivo sirve como plantilla para configurar la firma de release.
+# NO incluir credenciales reales en este archivo.
+#
+# PASOS PARA CONFIGURAR:
+# 1. Copiar este archivo como 'key.properties' en el mismo directorio
+# 2. Reemplazar los valores con tus credenciales reales
+# 3. NUNCA hacer commit de key.properties (está en .gitignore)
+# 4. Asegurar que key.jks existe en android/ (también ignorado)
+#
+# CREAR KEYSTORE (una sola vez):
+#   keytool -genkey -v -keystore android/key.jks \
+#     -keyalg RSA -keysize 2048 -validity 10000 \
+#     -alias release -storepass YOUR_STORE_PASS -keypass YOUR_KEY_PASS \
+#     -dname "CN=Your Name, OU=Your Unit, O=Your Company, L=Your City, S=Your State, C=Your Country"
+
+# Store password: contraseña del keystore (NO compartir)
+storePassword=YOUR_STORE_PASSWORD_HERE
+
+# Key password: contraseña de la clave privada (NO compartir)
+keyPassword=YOUR_KEY_PASSWORD_HERE
+
+# Key alias: nombre de la clave dentro del keystore (puede ser 'release')
+keyAlias=release
+
+# Store file: ruta relativa al keystore (debe ser .jks o .keystore)
+storeFile=android/key.jks
