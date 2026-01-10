@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 import '../models/load_cell_config.dart';
 import '../models/filter_params.dart';
 import '../services/weight_service.dart';
+import '../services/bluetooth_service.dart';
 import 'package:f16_balanza_electronica/widgets/filter_editor.dart';
 import '../utils/screenshot_helper.dart';
 
@@ -62,7 +63,8 @@ class _ConfigScreenState extends State<ConfigScreen> {
   }
 
   void _subscribeToWeightStream() {
-    _weightSubscription = _weightService.weightStateStream.listen((WeightState state) {
+    _weightSubscription =
+        _weightService.weightStateStream.listen((WeightState state) {
       if (mounted) {
         setState(() {
           _adcRaw = state.adcRaw;
@@ -155,6 +157,53 @@ class _ConfigScreenState extends State<ConfigScreen> {
     );
   }
 
+  /// ETAPA F2.2: Indicador visual compacto de estado Bluetooth en AppBar
+  Widget _buildBluetoothStatusBadge() {
+    return ValueListenableBuilder<BluetoothStatus>(
+      valueListenable: _weightService.bluetoothStatusNotifier,
+      builder: (BuildContext context, BluetoothStatus status, Widget? child) {
+        IconData icon;
+        Color color;
+
+        switch (status) {
+          case BluetoothStatus.connected:
+            icon = Icons.bluetooth_connected;
+            color = Colors.green;
+            break;
+          case BluetoothStatus.connecting:
+            icon = Icons.bluetooth_searching;
+            color = Colors.orange;
+            break;
+          case BluetoothStatus.error:
+            icon = Icons.bluetooth_disabled;
+            color = Colors.red;
+            break;
+          case BluetoothStatus.disconnected:
+            icon = Icons.bluetooth_disabled;
+            color = Colors.grey;
+        }
+
+        return Tooltip(
+          message: _getBluetoothStatusText(status),
+          child: Icon(icon, color: color, size: 20),
+        );
+      },
+    );
+  }
+
+  String _getBluetoothStatusText(BluetoothStatus status) {
+    switch (status) {
+      case BluetoothStatus.connected:
+        return 'Bluetooth: Conectado';
+      case BluetoothStatus.connecting:
+        return 'Bluetooth: Conectando...';
+      case BluetoothStatus.error:
+        return 'Bluetooth: Error';
+      case BluetoothStatus.disconnected:
+        return 'Bluetooth: Desconectado';
+    }
+  }
+
   // F-16: BUILD METHOD REFACTORIZADO
   @override
   Widget build(BuildContext context) {
@@ -172,6 +221,13 @@ class _ConfigScreenState extends State<ConfigScreen> {
           ),
           backgroundColor: Colors.blueGrey[800], // F-16: azul militar
           actions: <Widget>[
+            // ETAPA F2.2: Indicador de estado Bluetooth compacto
+            Center(
+              child: Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 8.0),
+                child: _buildBluetoothStatusBadge(),
+              ),
+            ),
             IconButton(
               icon: Icon(Icons.camera_alt,
                   color: Colors.grey[400]), // F-16: icono gris

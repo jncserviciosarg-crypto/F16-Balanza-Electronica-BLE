@@ -1,10 +1,26 @@
 import 'dart:async';
 import 'dart:io' show Platform;
+import 'dart:typed_data';
 import 'package:flutter/foundation.dart';
 import 'package:flutter_bluetooth_serial/flutter_bluetooth_serial.dart';
 import 'package:permission_handler/permission_handler.dart';
 import 'package:device_info_plus/device_info_plus.dart';
 import 'bluetooth_adapter.dart';
+
+/// Estados de conexión Bluetooth unificados
+enum BluetoothStatus {
+  /// Sin conexión activa
+  disconnected,
+
+  /// Proceso de conexión en progreso
+  connecting,
+
+  /// Conectado y recibiendo datos
+  connected,
+
+  /// Error en conexión (conexión fallida, se perdió, etc.)
+  error,
+}
 
 class BluetoothService {
   static final BluetoothService _instance = BluetoothService._internal();
@@ -16,17 +32,30 @@ class BluetoothService {
 
   final StreamController<int> _adcController =
       StreamController<int>.broadcast();
-  final StreamController<bool> _connectionController =
-      StreamController<bool>.broadcast();
+
+  /// Estado unificado de Bluetooth (ValueNotifier para reactividad)
+  final ValueNotifier<BluetoothStatus> _statusNotifier =
+      ValueNotifier<BluetoothStatus>(BluetoothStatus.disconnected);
 
   Stream<int> get adcStream => _adcController.stream;
-  Stream<bool> get connectionStream => _connectionController.stream;
+
+  /// Stream de estado Bluetooth unificado (compatibilidad)
+  // Stream<BluetoothStatus> get statusStream => _statusNotifier.stream;
+
+  /// Notifier del estado actual para ValueListenableBuilder
+  ValueNotifier<BluetoothStatus> get statusNotifier => _statusNotifier;
+
+  /// Stream booleano legacy para compatibilidad con código existente
+  /// true = connected, false = disconnected/error
 
   int _ultimoADC = 0;
   int get ultimoADC => _ultimoADC;
 
-  bool _isConnected = false;
-  bool get isConnected => _isConnected;
+  /// Retorna true solo si estado es connected
+  bool get isConnected => _statusNotifier.value == BluetoothStatus.connected;
+
+  /// Acceso directo al estado actual
+  BluetoothStatus get status => _statusNotifier.value;
 
   String _buffer = '';
 
@@ -74,7 +103,8 @@ class BluetoothService {
       }
 
       // Solicitar permisos
-      Map<Permission, PermissionStatus> statuses = <Permission, PermissionStatus>{};
+      Map<Permission, PermissionStatus> statuses =
+          <Permission, PermissionStatus>{};
       for (Permission permission in permissionsToRequest) {
         statuses[permission] = await permission.request();
       }
@@ -127,14 +157,24 @@ class BluetoothService {
   // Conectar a dispositivo por dirección MAC
   Future<bool> connect(String address) async {
     try {
-      if (_isConnected) {
+      if (status != BluetoothStatus.disconnected) {
         await disconnect();
       }
 
-      final BluetoothConnection? conn = await _adapter.connectToAddress(address);
+      /// Marcar estado como conectando
+      _statusNotifier.value = BluetoothStatus.connecting;
+
+      final BluetoothConnection? conn =
+          await _adapter.connectToAddress(address);
+
+      if (conn == null) {
+        _statusNotifier.value = BluetoothStatus.error;
+        debugPrint('Error: Conexión nula');
+        return false;
+      }
+
       _connection = conn;
-      _isConnected = true;
-      _connectionController.add(true);
+      _statusNotifier.value = BluetoothStatus.connected;
 
       // Información de conexión: omitida en build final
 
@@ -154,8 +194,7 @@ class BluetoothService {
       return true;
     } catch (e) {
       debugPrint('Error conectando: $e');
-      _isConnected = false;
-      _connectionController.add(false);
+      _statusNotifier.value = BluetoothStatus.error;
       return false;
     }
   }
@@ -189,8 +228,7 @@ class BluetoothService {
 
   // Manejar desconexión
   void _handleDisconnection() {
-    _isConnected = false;
-    _connectionController.add(false);
+    _statusNotifier.value = BluetoothStatus.disconnected;
     _connection?.dispose();
     _connection = null;
     _buffer = '';
@@ -212,6 +250,6 @@ class BluetoothService {
   void dispose() {
     disconnect();
     _adcController.close();
-    _connectionController.close();
+    _statusNotifier.dispose();
   }
 }

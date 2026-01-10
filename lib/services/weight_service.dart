@@ -6,6 +6,7 @@ import '../models/weight_state.dart';
 import '../models/load_cell_config.dart';
 import 'bluetooth_service.dart';
 import 'persistence_service.dart';
+import 'package:flutter/foundation.dart';
 
 class WeightService {
   static final WeightService _instance = WeightService._internal();
@@ -71,6 +72,13 @@ class WeightService {
     _updateIntervalMs = _filterParams.updateIntervalMs;
     _pesoWindowSize = _windowSize;
   }
+
+  /// Obtener estado actual de conexión Bluetooth (para sincronización F2.2)
+  BluetoothStatus get bluetoothStatus => _bluetoothService.status;
+
+  /// ValueNotifier de estado Bluetooth (para reactividad en UI)
+  ValueNotifier<BluetoothStatus> get bluetoothStatusNotifier =>
+      _bluetoothService.statusNotifier;
 
   void start() {
     if (_isRunning) return;
@@ -214,8 +222,10 @@ class WeightService {
   bool _detectStability() {
     if (_pesoWindowBuffer.length < _pesoWindowSize) return false;
 
-    double minPeso = _pesoWindowBuffer.reduce((double a, double b) => a < b ? a : b);
-    double maxPeso = _pesoWindowBuffer.reduce((double a, double b) => a > b ? a : b);
+    double minPeso =
+        _pesoWindowBuffer.reduce((double a, double b) => a < b ? a : b);
+    double maxPeso =
+        _pesoWindowBuffer.reduce((double a, double b) => a > b ? a : b);
     double span = (maxPeso - minPeso).abs();
 
     double threshold = _divisionMinima * 0.5;

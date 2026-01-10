@@ -7,6 +7,7 @@ import '../models/session_model.dart';
 import '../models/session_weight.dart';
 import '../services/session_history_service.dart';
 import '../services/weight_service.dart';
+import '../services/bluetooth_service.dart';
 import '../utils/screenshot_helper.dart';
 import '../widgets/session_weight_row.dart';
 
@@ -82,7 +83,8 @@ class _SessionProScreenState extends State<SessionProScreen> {
     _taraParcial = widget.pesoActual; // <- clave: parcial arranca en cero
 
     // Escuchar peso en tiempo real
-    _weightSubscription = _weightService.weightStateStream.listen((WeightState state) {
+    _weightSubscription =
+        _weightService.weightStateStream.listen((WeightState state) {
       if (mounted) {
         setState(() {
           _pesoTiempoReal = state.peso;
@@ -141,6 +143,13 @@ class _SessionProScreenState extends State<SessionProScreen> {
               ),
             ),
             actions: <Widget>[
+              // ETAPA F2.2: Indicador de estado Bluetooth compacto
+              Center(
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 4.0),
+                  child: _buildBluetoothStatusBadge(),
+                ),
+              ),
               IconButton(
                 icon: Icon(Icons.camera_alt,
                     size: 20, color: Colors.grey[400]), // F-16: icono gris
@@ -264,6 +273,53 @@ class _SessionProScreenState extends State<SessionProScreen> {
         ),
       ),
     );
+  }
+
+  /// ETAPA F2.2: Indicador visual compacto de estado Bluetooth en AppBar
+  Widget _buildBluetoothStatusBadge() {
+    return ValueListenableBuilder<BluetoothStatus>(
+      valueListenable: _weightService.bluetoothStatusNotifier,
+      builder: (BuildContext context, BluetoothStatus status, Widget? child) {
+        IconData icon;
+        Color color;
+
+        switch (status) {
+          case BluetoothStatus.connected:
+            icon = Icons.bluetooth_connected;
+            color = Colors.green;
+            break;
+          case BluetoothStatus.connecting:
+            icon = Icons.bluetooth_searching;
+            color = Colors.orange;
+            break;
+          case BluetoothStatus.error:
+            icon = Icons.bluetooth_disabled;
+            color = Colors.red;
+            break;
+          case BluetoothStatus.disconnected:
+            icon = Icons.bluetooth_disabled;
+            color = Colors.grey;
+        }
+
+        return Tooltip(
+          message: _getBluetoothStatusText(status),
+          child: Icon(icon, color: color, size: 18),
+        );
+      },
+    );
+  }
+
+  String _getBluetoothStatusText(BluetoothStatus status) {
+    switch (status) {
+      case BluetoothStatus.connected:
+        return 'Bluetooth: Conectado';
+      case BluetoothStatus.connecting:
+        return 'Bluetooth: Conectando...';
+      case BluetoothStatus.error:
+        return 'Bluetooth: Error';
+      case BluetoothStatus.disconnected:
+        return 'Bluetooth: Desconectado';
+    }
   }
 
   // ═══════════════════════════════════════════════════════════════════
@@ -546,7 +602,8 @@ class _SessionProScreenState extends State<SessionProScreen> {
     setState(() {});
 
     int elapsed = 0;
-    _taraProgressTimer = Timer.periodic(const Duration(milliseconds: 100), (Timer t) {
+    _taraProgressTimer =
+        Timer.periodic(const Duration(milliseconds: 100), (Timer t) {
       elapsed += 100;
       _taraHoldProgress = (elapsed / _taraHoldMillis).clamp(0.0, 1.0);
       if (_taraHoldProgress >= 1.0) {
@@ -699,7 +756,9 @@ class _SessionProScreenState extends State<SessionProScreen> {
       controller: controller,
       maxLines: 1,
       maxLength: 30,
-      inputFormatters: <TextInputFormatter>[LengthLimitingTextInputFormatter(30)],
+      inputFormatters: <TextInputFormatter>[
+        LengthLimitingTextInputFormatter(30)
+      ],
       style: const TextStyle(
           color: Colors.white, fontSize: 14, fontWeight: FontWeight.w500),
       decoration: InputDecoration(
@@ -739,7 +798,9 @@ class _SessionProScreenState extends State<SessionProScreen> {
       controller: controller,
       maxLines: 10,
       maxLength: 300,
-      inputFormatters: <TextInputFormatter>[LengthLimitingTextInputFormatter(300)],
+      inputFormatters: <TextInputFormatter>[
+        LengthLimitingTextInputFormatter(300)
+      ],
       style: const TextStyle(
           color: Colors.white, fontSize: 14, fontWeight: FontWeight.w500),
       decoration: InputDecoration(
@@ -947,7 +1008,9 @@ class _SessionProScreenState extends State<SessionProScreen> {
     final int totalPesadas = _session.pesadas.length;
     final double totalKg = _session.pesadas.isEmpty
         ? 0.0
-        : _session.pesadas.map((SessionWeight p) => p.peso).reduce((double a, double b) => a + b);
+        : _session.pesadas
+            .map((SessionWeight p) => p.peso)
+            .reduce((double a, double b) => a + b);
 
     return Container(
       margin: const EdgeInsets.symmetric(horizontal: 4, vertical: 2),
@@ -1062,10 +1125,13 @@ class _SessionProScreenState extends State<SessionProScreen> {
 
     // Calcular datos finales
     final DateTime fechaFinalizacion = DateTime.now();
-    final double totalKg = _session.pesadas.map((SessionWeight p) => p.peso).reduce((double a, double b) => a + b);
+    final double totalKg = _session.pesadas
+        .map((SessionWeight p) => p.peso)
+        .reduce((double a, double b) => a + b);
 
     // Generar nuevo ID determinista basado en timestamp + peso
-    final String nuevoId = SessionModel.generateSessionId(fechaFinalizacion, totalKg);
+    final String nuevoId =
+        SessionModel.generateSessionId(fechaFinalizacion, totalKg);
 
     // Actualizar datos del formulario
     final SessionModel sessionFinal = _session.copyWith(

@@ -6,6 +6,7 @@ import 'package:f16_balanza_electronica/models/weight_state.dart';
 import 'package:flutter/material.dart';
 import 'dart:async';
 import '../services/weight_service.dart';
+import '../services/bluetooth_service.dart';
 // Eliminados imports legacy (HistoryService, WeightRecord) al migrar totalmente a sesiones industriales
 import '../widgets/weight_display.dart';
 import '../utils/screenshot_helper.dart';
@@ -63,7 +64,8 @@ class _HomeScreenState extends State<HomeScreen>
     _divisionMinima = _weight_service_divisionFallback(_weightService);
     _unidad = _weightService.loadCellConfig.unidad;
 
-    _weightSubscription = _weightService.weightStateStream.listen((WeightState state) {
+    _weightSubscription =
+        _weightService.weightStateStream.listen((WeightState state) {
       if (mounted) {
         setState(() {
           _peso = state.peso;
@@ -86,7 +88,8 @@ class _HomeScreenState extends State<HomeScreen>
         });
       }
     });
-    _configSubscription = _weightService.configStream.listen((LoadCellConfig config) {
+    _configSubscription =
+        _weightService.configStream.listen((LoadCellConfig config) {
       if (mounted) {
         setState(() {
           _divisionMinima = config.divisionMinima;
@@ -207,43 +210,54 @@ class _HomeScreenState extends State<HomeScreen>
               final bool isMobile = screenWidth < 600;
               final bool isTablet = screenWidth >= 600 && screenWidth < 900;
 
-              return Container(
-                color: Colors.grey[850], // F-16: gris metálico oscuro
-                padding: EdgeInsets.all(isMobile ? 8.0 : 12.0),
-                child: Column(
-                  children: <Widget>[
-                    // Display de peso (mantiene lógica intacta)
-                    Flexible(
-                      flex: 6,
-                      child: Center(
-                        child: WeightDisplay(
-                          peso: _peso,
-                          estable: _uiEstable,
-                          adc: adcRaw,
-                          tara: _tara,
-                          divisionMinima: _divisionMinima,
-                          overload: _overload,
-                          unidad: _unidad,
+              return Stack(
+                children: <Widget>[
+                  Container(
+                    color: Colors.grey[850], // F-16: gris metálico oscuro
+                    padding: EdgeInsets.all(isMobile ? 8.0 : 12.0),
+                    child: Column(
+                      children: <Widget>[
+                        // Display de peso (mantiene lógica intacta)
+                        Flexible(
+                          flex: 6,
+                          child: Center(
+                            child: WeightDisplay(
+                              peso: _peso,
+                              estable: _uiEstable,
+                              adc: adcRaw,
+                              tara: _tara,
+                              divisionMinima: _divisionMinima,
+                              overload: _overload,
+                              unidad: _unidad,
+                            ),
+                          ),
                         ),
-                      ),
-                    ),
-                    SizedBox(height: isMobile ? 4 : 8),
+                        SizedBox(height: isMobile ? 4 : 8),
 
-                    // Botones de acción - responsive
-                    Flexible(
-                      flex: isMobile ? 2 : 1,
-                      child:
-                          _buildResponsiveButtons(context, isMobile, isTablet),
+                        // Botones de acción - responsive
+                        Flexible(
+                          flex: isMobile ? 2 : 1,
+                          child: _buildResponsiveButtons(
+                              context, isMobile, isTablet),
+                        ),
+                      ],
                     ),
-                  ],
-                ),
+                  ),
+                  // ETAPA F2.2: Indicador de estado Bluetooth en esquina superior derecha
+                  Positioned(
+                    top: 8,
+                    right: 8,
+                    child: _buildBluetoothStatusIndicator(),
+                  ),
+                ],
               );
             },
           ),
         ),
         floatingActionButton: FloatingActionButton(
           onPressed: () async {
-            final Uint8List? bytes = await ScreenshotHelper.captureWidget(_screenshotKey);
+            final Uint8List? bytes =
+                await ScreenshotHelper.captureWidget(_screenshotKey);
             if (bytes != null) {
               await ScreenshotHelper.sharePng(bytes,
                   filenamePrefix: 'home_screen');
@@ -267,7 +281,57 @@ class _HomeScreenState extends State<HomeScreen>
     );
   }
 
-  // Nuevo: Layout responsivo para botones
+  /// ETAPA F2.2: Indicador visual reactivo de estado Bluetooth
+  Widget _buildBluetoothStatusIndicator() {
+    return ValueListenableBuilder<BluetoothStatus>(
+      valueListenable: _weightService.bluetoothStatusNotifier,
+      builder: (BuildContext context, BluetoothStatus status, Widget? child) {
+        IconData icon;
+        Color color;
+        String tooltip;
+
+        switch (status) {
+          case BluetoothStatus.connected:
+            icon = Icons.bluetooth_connected;
+            color = Colors.green;
+            tooltip = 'Bluetooth: Conectado';
+            break;
+          case BluetoothStatus.connecting:
+            icon = Icons.bluetooth_searching;
+            color = Colors.orange;
+            tooltip = 'Bluetooth: Conectando...';
+            break;
+          case BluetoothStatus.error:
+            icon = Icons.bluetooth_disabled;
+            color = Colors.red;
+            tooltip = 'Bluetooth: Error de conexión';
+            break;
+          case BluetoothStatus.disconnected:
+            icon = Icons.bluetooth_disabled;
+            color = Colors.grey;
+            tooltip = 'Bluetooth: Desconectado';
+        }
+
+        return Tooltip(
+          message: tooltip,
+          child: Container(
+            decoration: BoxDecoration(
+              color: Colors.grey[850]!.withOpacity(0.9),
+              borderRadius: BorderRadius.circular(8),
+              border: Border.all(color: color, width: 2),
+            ),
+            padding: const EdgeInsets.all(6),
+            child: Icon(
+              icon,
+              color: color,
+              size: 24,
+            ),
+          ),
+        );
+      },
+    );
+  }
+
   Widget _buildResponsiveButtons(
       BuildContext context, bool isMobile, bool isTablet) {
     final List<Widget> buttons = <Widget>[

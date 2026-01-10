@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bluetooth_serial/flutter_bluetooth_serial.dart';
 import '../services/bluetooth_service.dart';
 import '../utils/screenshot_helper.dart';
+import 'dart:async';
 
 class BluetoothScreen extends StatefulWidget {
   const BluetoothScreen({Key? key}) : super(key: key);
@@ -16,30 +17,39 @@ class _BluetoothScreenState extends State<BluetoothScreen> {
   final BluetoothService _bluetoothService = BluetoothService();
   List<BluetoothDevice> _devices = <BluetoothDevice>[];
   bool _isScanning = false;
-  bool _isConnected = false;
   String? _connectedDeviceName;
   int _ultimoADC = 0;
   final GlobalKey<State<StatefulWidget>> _screenshotKey = GlobalKey();
+
+  /// Subscripciones que se cancelarán en dispose()
+
+  late StreamSubscription<int> _adcSubscription;
 
   @override
   void initState() {
     super.initState();
     _checkBluetoothAndLoadDevices();
+    ValueListenableBuilder<BluetoothStatus>(
+      valueListenable: _bluetoothService.statusNotifier,
+      builder: (context, status, _) {
+        return Text(_getStatusText(status));
+      },
+    );
 
-    // Escuchar cambios de conexión
-    _bluetoothService.connectionStream.listen((bool connected) {
+/*    // Escuchar cambios de estado de conexión (nuevo sistema unificado)
+    _statusSubscription =
+        _bluetoothService.statusStream.listen((BluetoothStatus status) {
       if (mounted) {
         setState(() {
-          _isConnected = connected;
-          if (!connected) {
+          if (status != BluetoothStatus.connected) {
             _connectedDeviceName = null;
           }
         });
       }
-    });
+    });*/
 
     // Escuchar valores ADC
-    _bluetoothService.adcStream.listen((int adc) {
+    _adcSubscription = _bluetoothService.adcStream.listen((int adc) {
       if (mounted) {
         setState(() {
           _ultimoADC = adc;
@@ -50,7 +60,8 @@ class _BluetoothScreenState extends State<BluetoothScreen> {
 
   Future<void> _checkBluetoothAndLoadDevices() async {
     // Verificar permisos primero
-    final bool hasPermissions = await _bluetoothService.checkAndRequestPermissions();
+    final bool hasPermissions =
+        await _bluetoothService.checkAndRequestPermissions();
     if (!hasPermissions) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -112,9 +123,24 @@ class _BluetoothScreenState extends State<BluetoothScreen> {
     }
   }
 
+  /// Helper para mostrar el estado de conexión en texto
+  String _getStatusText(BluetoothStatus status) {
+    switch (status) {
+      case BluetoothStatus.disconnected:
+        return 'DESCONECTADO';
+      case BluetoothStatus.connecting:
+        return 'CONECTANDO...';
+      case BluetoothStatus.connected:
+        return 'CONECTADO';
+      case BluetoothStatus.error:
+        return 'ERROR DE CONEXIÓN';
+    }
+  }
+
   Future<void> _connectToDevice(BluetoothDevice device) async {
     // Verificar permisos antes de conectar
-    final bool hasPermissions = await _bluetoothService.checkAndRequestPermissions();
+    final bool hasPermissions =
+        await _bluetoothService.checkAndRequestPermissions();
     if (!hasPermissions) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -144,7 +170,6 @@ class _BluetoothScreenState extends State<BluetoothScreen> {
 
       if (connected) {
         setState(() {
-          _isConnected = true;
           _connectedDeviceName = device.name ?? device.address;
         });
         ScaffoldMessenger.of(context).showSnackBar(
@@ -195,7 +220,8 @@ class _BluetoothScreenState extends State<BluetoothScreen> {
           actions: <Widget>[
             IconButton(
               icon: Icon(Icons.refresh, color: Colors.grey[400]), // F-16
-              onPressed: _isConnected ? null : _loadPairedDevices,
+              onPressed:
+                  _bluetoothService.isConnected ? null : _loadPairedDevices,
             ),
             IconButton(
               icon: Icon(Icons.camera_alt, color: Colors.grey[400]), // F-16
@@ -232,81 +258,92 @@ class _BluetoothScreenState extends State<BluetoothScreen> {
                     bottom: BorderSide(color: Colors.blueGrey[700]!, width: 1),
                   ),
                 ),
-                child: Row(
-                  children: <Widget>[
-                    Icon(
-                      _isConnected
-                          ? Icons.bluetooth_connected
-                          : Icons.bluetooth_disabled,
-                      color: _isConnected
-                          ? Colors.green[700] // F-16: verde militar
-                          : Colors.grey[600], // F-16: gris apagado
-                      size: 28,
-                    ),
-                    const SizedBox(width: 12),
-                    Expanded(
-                      child: Text(
-                        _isConnected
-                            ? 'CONECTADO: $_connectedDeviceName' // F-16: MAYÚSCULAS
-                            : 'DESCONECTADO',
-                        style: TextStyle(
-                          fontSize: 14,
-                          fontWeight: FontWeight.bold,
-                          letterSpacing: 1.2, // F-16
-                          color: _isConnected
-                              ? Colors.green[700]
-                              : Colors.grey[500],
+                child: ValueListenableBuilder<BluetoothStatus>(
+                  valueListenable: _bluetoothService.statusNotifier,
+                  builder: (BuildContext context, BluetoothStatus status,
+                      Widget? child) {
+                    final bool isConnected =
+                        status == BluetoothStatus.connected;
+
+                    return Row(
+                      children: <Widget>[
+                        Icon(
+                          isConnected
+                              ? Icons.bluetooth_connected
+                              : Icons.bluetooth_disabled,
+                          color: isConnected
+                              ? Colors.green[700] // F-16: verde militar
+                              : Colors.grey[600], // F-16: gris apagado
+                          size: 28,
                         ),
-                      ),
-                    ),
-                    if (_isConnected) ...<Widget>[
-                      const SizedBox(width: 16),
-                      Container(
-                        padding: const EdgeInsets.symmetric(
-                            horizontal: 16, vertical: 8),
-                        decoration: BoxDecoration(
-                          color: Colors.black87,
-                          borderRadius:
-                              BorderRadius.circular(4), // F-16: angular
-                          border:
-                              Border.all(color: Colors.cyan[700]!, width: 1),
-                        ),
-                        child: Text(
-                          'ADC: $_ultimoADC',
-                          style: TextStyle(
-                            fontSize: 18,
-                            fontWeight: FontWeight.bold,
-                            color: Colors.cyan[700], // F-16: cian militar
-                            fontFamily: 'monospace',
-                            letterSpacing: 1.5,
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: Text(
+                            isConnected
+                                ? 'CONECTADO: $_connectedDeviceName' // F-16: MAYÚSCULAS
+                                : _getStatusText(status),
+                            style: TextStyle(
+                              fontSize: 14,
+                              fontWeight: FontWeight.bold,
+                              letterSpacing: 1.2, // F-16
+                              color: isConnected
+                                  ? Colors.green[700]
+                                  : Colors.grey[500],
+                            ),
                           ),
                         ),
-                      ),
-                      const SizedBox(width: 16),
-                      ElevatedButton.icon(
-                        onPressed: _disconnect,
-                        icon: const Icon(Icons.bluetooth_disabled, size: 18),
-                        label: const Text(
-                          'DESCONECTAR',
-                          style: TextStyle(
-                            fontSize: 12,
-                            letterSpacing: 1.2,
-                            fontWeight: FontWeight.bold,
+                        if (isConnected) ...<Widget>[
+                          const SizedBox(width: 16),
+                          Container(
+                            padding: const EdgeInsets.symmetric(
+                                horizontal: 16, vertical: 8),
+                            decoration: BoxDecoration(
+                              color: Colors.black87,
+                              borderRadius:
+                                  BorderRadius.circular(4), // F-16: angular
+                              border: Border.all(
+                                  color: Colors.cyan[700]!, width: 1),
+                            ),
+                            child: Text(
+                              'ADC: $_ultimoADC',
+                              style: TextStyle(
+                                fontSize: 18,
+                                fontWeight: FontWeight.bold,
+                                color: Colors.cyan[700], // F-16: cian militar
+                                fontFamily: 'monospace',
+                                letterSpacing: 1.5,
+                              ),
+                            ),
                           ),
-                        ),
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: Colors.red[800], // F-16: rojo oscuro
-                          foregroundColor: Colors.white,
-                          padding: const EdgeInsets.symmetric(
-                              horizontal: 16, vertical: 10),
-                          shape: RoundedRectangleBorder(
-                            borderRadius:
-                                BorderRadius.circular(4), // F-16: angular
+                          const SizedBox(width: 16),
+                          ElevatedButton.icon(
+                            onPressed: _disconnect,
+                            icon:
+                                const Icon(Icons.bluetooth_disabled, size: 18),
+                            label: const Text(
+                              'DESCONECTAR',
+                              style: TextStyle(
+                                fontSize: 12,
+                                letterSpacing: 1.2,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor:
+                                  Colors.red[800], // F-16: rojo oscuro
+                              foregroundColor: Colors.white,
+                              padding: const EdgeInsets.symmetric(
+                                  horizontal: 16, vertical: 10),
+                              shape: RoundedRectangleBorder(
+                                borderRadius:
+                                    BorderRadius.circular(4), // F-16: angular
+                              ),
+                            ),
                           ),
-                        ),
-                      ),
-                    ],
-                  ],
+                        ],
+                      ],
+                    );
+                  },
                 ),
               ),
               // F-16: LISTA DE DISPOSITIVOS
@@ -364,9 +401,10 @@ class _BluetoothScreenState extends State<BluetoothScreen> {
                             itemCount: _devices.length,
                             itemBuilder: (BuildContext context, int index) {
                               BluetoothDevice device = _devices[index];
-                              bool isCurrentDevice = _isConnected &&
-                                  _connectedDeviceName ==
-                                      (device.name ?? device.address);
+                              bool isCurrentDevice =
+                                  _bluetoothService.isConnected &&
+                                      _connectedDeviceName ==
+                                          (device.name ?? device.address);
 
                               return Card(
                                 margin: const EdgeInsets.only(bottom: 8),
@@ -419,7 +457,7 @@ class _BluetoothScreenState extends State<BluetoothScreen> {
                                         : Colors.grey[600],
                                     size: isCurrentDevice ? 24 : 18,
                                   ),
-                                  onTap: _isConnected
+                                  onTap: _bluetoothService.isConnected
                                       ? null
                                       : () => _connectToDevice(device),
                                 ),
@@ -436,6 +474,7 @@ class _BluetoothScreenState extends State<BluetoothScreen> {
 
   @override
   void dispose() {
+    _adcSubscription.cancel();
     super.dispose();
   }
 }
