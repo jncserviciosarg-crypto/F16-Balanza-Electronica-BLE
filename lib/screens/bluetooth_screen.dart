@@ -1,13 +1,14 @@
 import 'dart:typed_data';
 
 import 'package:flutter/material.dart';
-import 'package:flutter_bluetooth_serial/flutter_bluetooth_serial.dart';
+import 'package:flutter_blue_plus/flutter_blue_plus.dart' as fbp;
 import '../services/bluetooth_service.dart';
+import '../services/flutter_blue_plus_adapter.dart';
 import '../utils/screenshot_helper.dart';
 import 'dart:async';
 
 class BluetoothScreen extends StatefulWidget {
-  const BluetoothScreen({Key? key}) : super(key: key);
+  const BluetoothScreen({super.key});
 
   @override
   State<BluetoothScreen> createState() => _BluetoothScreenState();
@@ -15,7 +16,8 @@ class BluetoothScreen extends StatefulWidget {
 
 class _BluetoothScreenState extends State<BluetoothScreen> {
   final BluetoothService _bluetoothService = BluetoothService();
-  List<BluetoothDevice> _devices = <BluetoothDevice>[];
+  final FlutterBluePlusAdapter _bleAdapter = FlutterBluePlusAdapter();
+  List<fbp.ScanResult> _devices = <fbp.ScanResult>[];
   bool _isScanning = false;
   String? _connectedDeviceName;
   int _ultimoADC = 0;
@@ -96,16 +98,33 @@ class _BluetoothScreenState extends State<BluetoothScreen> {
     await _loadPairedDevices();
   }
 
-  Future<void> _loadPairedDevices() async {
+  Future<void> _scanForBLEDevices() async {
     setState(() {
       _isScanning = true;
+      _devices.clear();
     });
 
     try {
-      List<BluetoothDevice> devices =
-          await _bluetoothService.getPairedDevices();
+      List<fbp.ScanResult> scanResults = await _bleAdapter.scanForBLEDevices(
+        timeout: const Duration(seconds: 10),
+      );
+
       setState(() {
-        _devices = devices;
+        // Filtrar y ordenar: priorizar 'BalanzaJ&M_BLE'
+        _devices = scanResults.where((result) {
+          final name = result.device.platformName;
+          return name.isNotEmpty;
+        }).toList();
+
+        // Ordenar: primero dispositivos con 'BalanzaJ&M_BLE' en el nombre
+        _devices.sort((a, b) {
+          final aName = a.device.platformName;
+          final bName = b.device.platformName;
+          final aIsBalanza = aName.contains('BalanzaJ&M_BLE') ? 0 : 1;
+          final bIsBalanza = bName.contains('BalanzaJ&M_BLE') ? 0 : 1;
+          return aIsBalanza.compareTo(bIsBalanza);
+        });
+
         _isScanning = false;
       });
     } catch (e) {
@@ -115,12 +134,16 @@ class _BluetoothScreenState extends State<BluetoothScreen> {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('Error cargando dispositivos: $e'),
+            content: Text('Error escaneando dispositivos BLE: $e'),
             backgroundColor: Colors.red[800], // F-16
           ),
         );
       }
     }
+  }
+
+  Future<void> _loadPairedDevices() async {
+    await _scanForBLEDevices();
   }
 
   /// Helper para mostrar el estado de conexión en texto
@@ -137,7 +160,7 @@ class _BluetoothScreenState extends State<BluetoothScreen> {
     }
   }
 
-  Future<void> _connectToDevice(BluetoothDevice device) async {
+  Future<void> _connectToDevice(fbp.ScanResult scanResult) async {
     // Verificar permisos antes de conectar
     final bool hasPermissions =
         await _bluetoothService.checkAndRequestPermissions();
@@ -163,29 +186,32 @@ class _BluetoothScreenState extends State<BluetoothScreen> {
       ),
     );
 
-    bool connected = await _bluetoothService.connect(device.address);
+    // Usar la dirección MAC/ID del dispositivo BLE
+    final String deviceAddress = scanResult.device.remoteId.str;
+    bool connected = await _bluetoothService.connect(deviceAddress);
 
-    if (mounted) {
-      Navigator.pop(context);
+    if (!mounted) return;
 
-      if (connected) {
-        setState(() {
-          _connectedDeviceName = device.name ?? device.address;
-        });
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Conectado a ${device.name}'),
-            backgroundColor: Colors.green[700], // F-16
-          ),
-        );
-      } else {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Error conectando a ${device.name}'),
-            backgroundColor: Colors.red[800], // F-16
-          ),
-        );
-      }
+    Navigator.pop(context);
+
+    final String deviceName = scanResult.device.platformName;
+    if (connected) {
+      setState(() {
+        _connectedDeviceName = deviceName;
+      });
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Conectado a $deviceName'),
+          backgroundColor: Colors.green[700], // F-16
+        ),
+      );
+    } else {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Error conectando a $deviceName'),
+          backgroundColor: Colors.red[800], // F-16
+        ),
+      );
     }
   }
 
@@ -232,6 +258,8 @@ class _BluetoothScreenState extends State<BluetoothScreen> {
                   await ScreenshotHelper.sharePng(bytes,
                       filenamePrefix: 'bluetooth');
                 } else {
+                  if (!mounted) return;
+                  // ignore: use_build_context_synchronously
                   ScaffoldMessenger.of(context).showSnackBar(
                     SnackBar(
                       content: const Text('Error al capturar pantalla'),
@@ -400,11 +428,16 @@ class _BluetoothScreenState extends State<BluetoothScreen> {
                             padding: const EdgeInsets.all(12),
                             itemCount: _devices.length,
                             itemBuilder: (BuildContext context, int index) {
-                              BluetoothDevice device = _devices[index];
+                              fbp.ScanResult scanResult = _devices[index];
+                              final String deviceName =
+                                  scanResult.device.platformName;
+                              final String deviceAddress =
+                                  scanResult.device.remoteId.str;
                               bool isCurrentDevice =
                                   _bluetoothService.isConnected &&
-                                      _connectedDeviceName ==
-                                          (device.name ?? device.address);
+                                      _connectedDeviceName == deviceName;
+                              bool isBalanza =
+                                  deviceName.contains('BalanzaJ&M_BLE');
 
                               return Card(
                                 margin: const EdgeInsets.only(bottom: 8),
@@ -415,8 +448,11 @@ class _BluetoothScreenState extends State<BluetoothScreen> {
                                     color: isCurrentDevice
                                         ? Colors.green[
                                             700]! // F-16: borde verde si conectado
-                                        : Colors.blueGrey[700]!,
-                                    width: isCurrentDevice ? 2 : 1,
+                                        : isBalanza
+                                            ? Colors.cyan[
+                                                700]! // F-16: borde cian para BalanzaJ&M_BLE
+                                            : Colors.blueGrey[700]!,
+                                    width: isCurrentDevice || isBalanza ? 2 : 1,
                                   ),
                                 ),
                                 child: ListTile(
@@ -425,23 +461,27 @@ class _BluetoothScreenState extends State<BluetoothScreen> {
                                     color: isCurrentDevice
                                         ? Colors
                                             .green[700] // F-16: verde militar
-                                        : Colors.blueGrey[
-                                            600], // F-16: azul grisáceo
+                                        : isBalanza
+                                            ? Colors.cyan[700]
+                                            : Colors.blueGrey[
+                                                600], // F-16: azul grisáceo
                                     size: 32,
                                   ),
                                   title: Text(
-                                    device.name ?? 'DISPOSITIVO SIN NOMBRE',
+                                    deviceName,
                                     style: TextStyle(
                                       fontWeight: FontWeight.bold,
                                       color: isCurrentDevice
                                           ? Colors.green[700]
-                                          : Colors.white,
+                                          : isBalanza
+                                              ? Colors.cyan[700]
+                                              : Colors.white,
                                       letterSpacing: 0.5,
                                       fontSize: 14,
                                     ),
                                   ),
                                   subtitle: Text(
-                                    device.address,
+                                    deviceAddress,
                                     style: TextStyle(
                                       color: Colors.grey[500], // F-16
                                       fontFamily: 'monospace',
@@ -459,7 +499,7 @@ class _BluetoothScreenState extends State<BluetoothScreen> {
                                   ),
                                   onTap: _bluetoothService.isConnected
                                       ? null
-                                      : () => _connectToDevice(device),
+                                      : () => _connectToDevice(scanResult),
                                 ),
                               );
                             },

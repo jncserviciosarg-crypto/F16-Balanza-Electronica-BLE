@@ -15,11 +15,11 @@ class F16SplashScreen extends StatefulWidget {
   final Duration finalHold;
 
   const F16SplashScreen({
-    Key? key,
+    super.key,
     this.onComplete,
     this.perSystemDuration = const Duration(milliseconds: 900),
     this.finalHold = const Duration(milliseconds: 1200),
-  }) : super(key: key);
+  });
 
   @override
   _F16SplashScreenState createState() => _F16SplashScreenState();
@@ -200,7 +200,8 @@ class _F16SplashScreenState extends State<F16SplashScreen>
       backgroundColor: Colors.black,
       body: SafeArea(
         child: Center(
-          child: LayoutBuilder(builder: (BuildContext context, BoxConstraints constraints) {
+          child: LayoutBuilder(
+              builder: (BuildContext context, BoxConstraints constraints) {
             final double maxWidth = constraints.maxWidth.clamp(300.0, 900.0);
             return ConstrainedBox(
               constraints: BoxConstraints(minWidth: 300, maxWidth: maxWidth),
@@ -349,7 +350,7 @@ class _F16SplashScreenState extends State<F16SplashScreen>
 /// Pequeño punto pulsante usado para indicar "EN PRUEBA"
 class _PulsingDot extends StatefulWidget {
   final Color color;
-  const _PulsingDot({Key? key, required this.color}) : super(key: key);
+  const _PulsingDot({super.key, required this.color});
 
   @override
   __PulsingDotState createState() => __PulsingDotState();

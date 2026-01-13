@@ -11,7 +11,7 @@ class WeightDisplay extends StatefulWidget {
   final String unidad; // NUEVO: unidad visual
 
   const WeightDisplay({
-    Key? key,
+    super.key,
     required this.peso,
     required this.estable,
     required this.adc,
@@ -19,7 +19,7 @@ class WeightDisplay extends StatefulWidget {
     required this.divisionMinima,
     this.overload = false,
     required this.unidad, // NUEVO: requerido
-  }) : super(key: key);
+  });
 
   @override
   State<WeightDisplay> createState() => _WeightDisplayState();
@@ -77,15 +77,15 @@ class _WeightDisplayState extends State<WeightDisplay>
       animation: _fadeAnim,
       builder: (BuildContext context, Widget? child) {
         final Color borderColor = overload
-            ? Colors.red.withOpacity(_fadeAnim.value)
+            ? Colors.red.withValues(alpha: _fadeAnim.value)
             : (widget.estable ? Colors.green : Colors.grey);
         final Color boxShadowColor = overload
-            ? Colors.red.withOpacity(0.3 * _fadeAnim.value)
+            ? Colors.red.withValues(alpha: 0.3 * _fadeAnim.value)
             : (widget.estable
-                ? Colors.green.withOpacity(0.3)
-                : Colors.grey.withOpacity(0.2));
+                ? Colors.green.withValues(alpha: 0.3)
+                : Colors.grey.withValues(alpha: 0.2));
         final Color bgColor =
-            overload ? Colors.black.withOpacity(0.95) : Colors.black87;
+            overload ? Colors.black.withValues(alpha: 0.95) : Colors.black87;
 
         return Container(
           decoration: BoxDecoration(
@@ -155,10 +155,10 @@ class _WeightDisplayState extends State<WeightDisplay>
                         const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                     decoration: BoxDecoration(
                       color: overload
-                          ? Colors.red.withOpacity(0.2 * _fadeAnim.value)
+                          ? Colors.red.withValues(alpha: 0.2 * _fadeAnim.value)
                           : (widget.estable
-                              ? Colors.green.withOpacity(0.2)
-                              : Colors.grey.withOpacity(0.2)),
+                              ? Colors.green.withValues(alpha: 0.2)
+                              : Colors.grey.withValues(alpha: 0.2)),
                       borderRadius: BorderRadius.circular(12),
                       border: Border.all(
                         color: overload
@@ -227,7 +227,7 @@ class _WeightDisplayState extends State<WeightDisplay>
                     'TARA',
                     style: TextStyle(
                       fontSize: 30,
-                      color: Colors.green[700]!.withOpacity(0.7),
+                      color: Colors.green[700]!.withValues(alpha: 0.7),
                       fontWeight: FontWeight.w500,
                     ),
                   ),

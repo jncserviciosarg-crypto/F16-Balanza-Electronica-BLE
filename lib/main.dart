@@ -19,7 +19,7 @@ void main() {
 }
 
 class BalanzaApp extends StatelessWidget {
-  const BalanzaApp({Key? key}) : super(key: key);
+  const BalanzaApp({super.key});
 
   @override
   Widget build(BuildContext context) {
@@ -40,7 +40,7 @@ class BalanzaApp extends StatelessWidget {
 /// y luego delega a la pantalla principal (`HomeScreen`). Está diseñado para
 /// ser mínimo y no tocar ninguna otra lógica de la aplicación.
 class AppInitializer extends StatefulWidget {
-  const AppInitializer({Key? key}) : super(key: key);
+  const AppInitializer({super.key});
 
   @override
   State<AppInitializer> createState() => _AppInitializerState();

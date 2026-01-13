@@ -1,5 +1,22 @@
 import 'dart:async';
-import 'package:flutter_bluetooth_serial/flutter_bluetooth_serial.dart';
+
+/// Tipos de datos genéricos para compatibilidad de interfaz
+class BluetoothDevice {
+  final DeviceIdentifier remoteId;
+  final String? platformName;
+
+  BluetoothDevice({
+    required this.remoteId,
+    this.platformName,
+  });
+}
+
+class DeviceIdentifier {
+  final String str;
+  DeviceIdentifier(this.str);
+}
+
+enum BluetoothBondState { bonded, bonding, none }
 
 /// Interfaz abstracta para adaptador de Bluetooth.
 /// Permite cambiar de implementación (flutter_bluetooth_serial, flutter_blue_plus, etc.)
@@ -15,57 +32,36 @@ abstract class BluetoothAdapter {
   Future<bool?> requestEnable();
 
   /// Conectar a un dispositivo por dirección MAC
-  Future<BluetoothConnection?> connectToAddress(String address);
+  Future<dynamic> connectToAddress(String address);
 
   /// Stream de estado de Bluetooth
   Stream<bool> get bluetoothStateStream;
 }
 
-/// Implementación de adaptador usando flutter_bluetooth_serial
+/// Implementación de adaptador legacy (no usa flutter_bluetooth_serial)
 class FlutterBluetoothSerialAdapter implements BluetoothAdapter {
-  final FlutterBluetoothSerial _flutterBluetooth =
-      FlutterBluetoothSerial.instance;
-
   @override
   Future<List<BluetoothDevice>> getBondedDevices() async {
-    try {
-      final List<BluetoothDevice> devices = await _flutterBluetooth.getBondedDevices();
-      return devices.cast<BluetoothDevice>();
-    } catch (e) {
-      return <BluetoothDevice>[];
-    }
+    return <BluetoothDevice>[];
   }
 
   @override
   Future<bool?> isBluetoothEnabled() async {
-    try {
-      return await _flutterBluetooth.isEnabled;
-    } catch (e) {
-      return false;
-    }
+    return false;
   }
 
   @override
   Future<bool?> requestEnable() async {
-    try {
-      return await _flutterBluetooth.requestEnable();
-    } catch (e) {
-      return false;
-    }
+    return false;
   }
 
   @override
-  Future<BluetoothConnection?> connectToAddress(String address) async {
-    try {
-      return await BluetoothConnection.toAddress(address);
-    } catch (e) {
-      return null;
-    }
+  Future<dynamic> connectToAddress(String address) async {
+    return null;
   }
 
   @override
   Stream<bool> get bluetoothStateStream {
-    // Placeholder para futuros estados de Bluetooth
     return Stream.value(true);
   }
 }

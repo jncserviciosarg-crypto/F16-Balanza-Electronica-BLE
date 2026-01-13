@@ -6,10 +6,10 @@ class FilterEditor extends StatefulWidget {
   final Function(FilterParams) onSave;
 
   const FilterEditor({
-    Key? key,
+    super.key,
     required this.initial,
     required this.onSave,
-  }) : super(key: key);
+  });
 
   @override
   State<FilterEditor> createState() => _FilterEditorState();
@@ -97,7 +97,8 @@ class _FilterEditorState extends State<FilterEditor> {
             const SizedBox(height: 8),
             TextField(
               controller: _emaAlphaController,
-              keyboardType: const TextInputType.numberWithOptions(decimal: true),
+              keyboardType:
+                  const TextInputType.numberWithOptions(decimal: true),
               decoration: const InputDecoration(
                 labelText: 'EMA Alpha',
                 labelStyle: TextStyle(color: Colors.white70),

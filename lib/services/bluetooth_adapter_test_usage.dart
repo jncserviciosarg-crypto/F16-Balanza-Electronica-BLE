@@ -1,6 +1,3 @@
-import 'package:flutter/foundation.dart';
-import 'bluetooth_adapter.dart' as btAdapter;
-
 /// Archivo de demostración del uso de BluetoothAdapter.
 /// Este archivo NO se usa en producción todavía, solo muestra cómo
 /// el adaptador puede abstraer flutter_bluetooth_serial.

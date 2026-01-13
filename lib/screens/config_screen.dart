@@ -10,7 +10,7 @@ import 'package:f16_balanza_electronica/widgets/filter_editor.dart';
 import '../utils/screenshot_helper.dart';
 
 class ConfigScreen extends StatefulWidget {
-  const ConfigScreen({Key? key}) : super(key: key);
+  const ConfigScreen({super.key});
 
   @override
   State<ConfigScreen> createState() => _ConfigScreenState();
@@ -238,6 +238,7 @@ class _ConfigScreenState extends State<ConfigScreen> {
                   await ScreenshotHelper.sharePng(bytes,
                       filenamePrefix: 'configuracion');
                 } else {
+                  if (!mounted) return;
                   ScaffoldMessenger.of(context).showSnackBar(
                     SnackBar(
                       content: const Text('Error al capturar pantalla'),

@@ -18,7 +18,7 @@ import 'session_pro_screen.dart'; // <- nueva importación para sesiones pro
 import '../mixins/weight_stream_mixin.dart';
 
 class HomeScreen extends StatefulWidget {
-  const HomeScreen({Key? key}) : super(key: key);
+  const HomeScreen({super.key});
 
   @override
   State<HomeScreen> createState() => _HomeScreenState();
@@ -262,6 +262,7 @@ class _HomeScreenState extends State<HomeScreen>
               await ScreenshotHelper.sharePng(bytes,
                   filenamePrefix: 'home_screen');
             } else {
+              if (!mounted) return;
               ScaffoldMessenger.of(context).showSnackBar(
                 const SnackBar(
                   content: Text('Error al capturar pantalla'),

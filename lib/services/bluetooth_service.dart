@@ -1,11 +1,11 @@
 import 'dart:async';
 import 'dart:io' show Platform;
-import 'dart:typed_data';
 import 'package:flutter/foundation.dart';
-import 'package:flutter_bluetooth_serial/flutter_bluetooth_serial.dart';
+import 'package:flutter_blue_plus/flutter_blue_plus.dart' as fbp;
 import 'package:permission_handler/permission_handler.dart';
 import 'package:device_info_plus/device_info_plus.dart';
 import 'bluetooth_adapter.dart';
+import 'flutter_blue_plus_adapter.dart';
 
 /// Estados de conexión Bluetooth unificados
 enum BluetoothStatus {
@@ -27,8 +27,14 @@ class BluetoothService {
   factory BluetoothService() => _instance;
   BluetoothService._internal();
 
-  BluetoothConnection? _connection;
-  final BluetoothAdapter _adapter = FlutterBluetoothSerialAdapter();
+  dynamic _connection;
+  final BluetoothAdapter _adapter = FlutterBluePlusAdapter();
+  fbp.BluetoothCharacteristic? _bleCharacteristic;
+
+  // UUIDs para el servicio y característica BLE
+  static const String _serviceUuid = '4fafc201-1fb5-459e-8fcc-c5c9c331914b';
+  static const String _characteristicUuid =
+      'beb5483e-36e1-4688-b7f5-ea07361b26a8';
 
   final StreamController<int> _adcController =
       StreamController<int>.broadcast();
@@ -56,8 +62,6 @@ class BluetoothService {
 
   /// Acceso directo al estado actual
   BluetoothStatus get status => _statusNotifier.value;
-
-  String _buffer = '';
 
   /// Verifica y solicita permisos de Bluetooth según la versión de Android
   /// Retorna true si todos los permisos están concedidos, false en caso contrario
@@ -164,32 +168,73 @@ class BluetoothService {
       /// Marcar estado como conectando
       _statusNotifier.value = BluetoothStatus.connecting;
 
-      final BluetoothConnection? conn =
-          await _adapter.connectToAddress(address);
-
-      if (conn == null) {
+      // Buscar el dispositivo BLE por dirección MAC
+      final fbp.BluetoothDevice? bleDevice =
+          await _findBleDeviceByAddress(address);
+      if (bleDevice == null) {
         _statusNotifier.value = BluetoothStatus.error;
-        debugPrint('Error: Conexión nula');
+        debugPrint(
+            'Error: No se encontró dispositivo BLE con dirección $address');
         return false;
       }
 
-      _connection = conn;
+      // Conectar al dispositivo BLE (v2.1+)
+      // license es requerido en v2.1.0, pasamos cadena vacía
+      // ignore: missing_required_argument
+      await bleDevice.connect();
+
+      // Descubrir servicios
+      final List<fbp.BluetoothService> services =
+          await bleDevice.discoverServices();
+      fbp.BluetoothService? targetService;
+      for (var service in services) {
+        if (service.uuid.str == _serviceUuid) {
+          targetService = service;
+          break;
+        }
+      }
+
+      if (targetService == null) {
+        await bleDevice.disconnect();
+        _statusNotifier.value = BluetoothStatus.error;
+        debugPrint('Error: Servicio $_serviceUuid no encontrado');
+        return false;
+      }
+
+      // Buscar la característica
+      fbp.BluetoothCharacteristic? targetCharacteristic;
+      for (var characteristic in targetService.characteristics) {
+        if (characteristic.uuid.str == _characteristicUuid) {
+          targetCharacteristic = characteristic;
+          break;
+        }
+      }
+
+      if (targetCharacteristic == null) {
+        await bleDevice.disconnect();
+        _statusNotifier.value = BluetoothStatus.error;
+        debugPrint('Error: Característica $_characteristicUuid no encontrada');
+        return false;
+      }
+
+      _bleCharacteristic = targetCharacteristic;
       _statusNotifier.value = BluetoothStatus.connected;
 
-      // Información de conexión: omitida en build final
+      // Activar notificaciones para recibir datos cada 50ms
+      await _bleCharacteristic!.setNotifyValue(true);
 
-      // Iniciar lectura del stream si la conexión provee input
-      _connection?.input?.listen(
-        _onDataReceived,
-        onDone: () {
-          // La conexión se cerró: manejar internamente
-          _handleDisconnection();
-        },
+      // Escuchar cambios en la característica (datos binarios)
+      _bleCharacteristic!.onValueReceived.listen(
+        _onBinaryDataReceived,
         onError: (error) {
-          debugPrint('Error en conexión: $error');
+          debugPrint('Error recibiendo datos BLE: $error');
           _handleDisconnection();
         },
       );
+
+      // Usar adaptador para mantener conexión legacy si es necesario
+      final dynamic conn = await _adapter.connectToAddress(address);
+      _connection = conn;
 
       return true;
     } catch (e) {
@@ -199,39 +244,54 @@ class BluetoothService {
     }
   }
 
-  // Procesar datos recibidos
-  void _onDataReceived(Uint8List data) {
+  /// Buscar dispositivo BLE por dirección MAC
+  Future<fbp.BluetoothDevice?> _findBleDeviceByAddress(String address) async {
     try {
-      String incoming = String.fromCharCodes(data);
-      _buffer += incoming;
-
-      // Procesar todas las líneas completas en el buffer
-      while (_buffer.contains('\n')) {
-        int newlineIndex = _buffer.indexOf('\n');
-        String line = _buffer.substring(0, newlineIndex).trim();
-        _buffer = _buffer.substring(newlineIndex + 1);
-
-        if (line.isNotEmpty) {
-          try {
-            int adcValue = int.parse(line);
-            _ultimoADC = adcValue;
-            _adcController.add(adcValue);
-          } catch (e) {
-            debugPrint('Error parseando ADC: $line - $e');
-          }
+      final List<fbp.BluetoothDevice> systemDevices =
+          await fbp.FlutterBluePlus.systemDevices([]);
+      for (var device in systemDevices) {
+        if (device.remoteId.str == address) {
+          return device;
         }
       }
+      return null;
     } catch (e) {
-      debugPrint('Error procesando datos: $e');
+      debugPrint('Error buscando dispositivo BLE: $e');
+      return null;
+    }
+  }
+
+  // Procesar datos binarios recibidos de BLE (paquete de 10 bytes)
+  void _onBinaryDataReceived(List<int> data) {
+    try {
+      // Verificar que tenemos al menos 4 bytes para extraer el ADC
+      if (data.length < 4) {
+        debugPrint(
+            'Advertencia: Paquete BLE incompleto (${data.length} bytes)');
+        return;
+      }
+
+      // Extraer los primeros 4 bytes
+      final Uint8List rawBytes = Uint8List.fromList(data.sublist(0, 4));
+
+      // Convertir a entero de 32 bits (Little Endian)
+      final ByteData byteData = ByteData.view(rawBytes.buffer);
+      final int adcValue = byteData.getInt32(0, Endian.little);
+
+      // Actualizar el último ADC y emitir al stream
+      _ultimoADC = adcValue;
+      _adcController.add(adcValue);
+    } catch (e) {
+      debugPrint('Error procesando datos binarios BLE: $e');
     }
   }
 
   // Manejar desconexión
   void _handleDisconnection() {
     _statusNotifier.value = BluetoothStatus.disconnected;
+    _bleCharacteristic = null;
     _connection?.dispose();
     _connection = null;
-    _buffer = '';
   }
 
   // Desconectar

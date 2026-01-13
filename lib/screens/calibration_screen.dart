@@ -11,7 +11,7 @@ import '../widgets/password_dialog.dart';
 import '../utils/screenshot_helper.dart';
 
 class CalibrationScreen extends StatefulWidget {
-  const CalibrationScreen({Key? key}) : super(key: key);
+  const CalibrationScreen({super.key});
 
   @override
   State<CalibrationScreen> createState() => _CalibrationScreenState();
@@ -110,6 +110,7 @@ class _CalibrationScreenState extends State<CalibrationScreen> {
 
   Future<bool> _pedirPassDinamicaOMaestra() async {
     final int key = await _authService.generateDynamicKey();
+    if (!mounted) return false;
     final int? input = await PasswordDialog.show(
       context,
       mode: PasswordMode.dynamic,
@@ -147,6 +148,7 @@ class _CalibrationScreenState extends State<CalibrationScreen> {
           (factorDecimal * 100).toStringAsFixed(2);
     });
 
+    if (!mounted) return;
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
         content: Text(
@@ -291,6 +293,7 @@ class _CalibrationScreenState extends State<CalibrationScreen> {
     }
 
     // F-16: Diálogo de confirmación
+    if (!mounted) return;
     showDialog(
       context: context,
       builder: (BuildContext context) => AlertDialog(
@@ -458,7 +461,10 @@ class _CalibrationScreenState extends State<CalibrationScreen> {
                 if (bytes != null) {
                   await ScreenshotHelper.sharePng(bytes,
                       filenamePrefix: 'calibracion');
-                } else {
+                }
+                if (!mounted)
+                  return;
+                else {
                   ScaffoldMessenger.of(context).showSnackBar(
                     SnackBar(
                       content: const Text('Error al capturar pantalla'),

@@ -9,12 +9,12 @@ class PasswordDialog extends StatefulWidget {
   final String? message;
 
   const PasswordDialog({
-    Key? key,
+    super.key,
     required this.mode,
     this.dynamicKey,
     this.title,
     this.message,
-  }) : super(key: key);
+  });
 
   @override
   State<PasswordDialog> createState() => _PasswordDialogState();

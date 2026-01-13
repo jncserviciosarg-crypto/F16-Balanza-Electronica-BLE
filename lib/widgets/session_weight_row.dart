@@ -12,11 +12,11 @@ class SessionWeightRow extends StatelessWidget {
   static final WeightService _weightService = WeightService();
 
   const SessionWeightRow({
-    Key? key,
+    super.key,
     required this.numero,
     required this.pesada,
     this.onDelete,
-  }) : super(key: key);
+  });
 
   @override
   Widget build(BuildContext context) {

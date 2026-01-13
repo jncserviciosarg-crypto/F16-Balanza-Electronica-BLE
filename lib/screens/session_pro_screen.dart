@@ -18,10 +18,10 @@ class SessionProScreen extends StatefulWidget {
   final double pesoActual;
 
   const SessionProScreen({
-    Key? key,
+    super.key,
     required this.tipo,
     required this.pesoActual,
-  }) : super(key: key);
+  });
 
   @override
   State<SessionProScreen> createState() => _SessionProScreenState();
@@ -160,6 +160,7 @@ class _SessionProScreenState extends State<SessionProScreen> {
                     await ScreenshotHelper.sharePng(bytes,
                         filenamePrefix: 'session_${widget.tipo}');
                   } else {
+                    if (!mounted) return;
                     ScaffoldMessenger.of(context).showSnackBar(
                       SnackBar(
                         content: const Text('Error al capturar pantalla'),
@@ -553,7 +554,7 @@ class _SessionProScreenState extends State<SessionProScreen> {
                       height: 4,
                       decoration: BoxDecoration(
                         color: Colors.blueGrey[900]!
-                            .withOpacity(0.5), // F-16: progreso oscuro
+                            .withValues(alpha: 0.5), // F-16: progreso oscuro
                         borderRadius: const BorderRadius.vertical(
                           bottom: Radius.circular(4),
                         ),
