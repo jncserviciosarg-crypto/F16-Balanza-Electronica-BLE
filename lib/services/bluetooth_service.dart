@@ -33,7 +33,8 @@ class BluetoothService {
 
   // Gestión de desconexiones y auto-reconnect
   fbp.BluetoothDevice? _lastDevice;
-  StreamSubscription<fbp.BluetoothConnectionState>? _connectionStateSubscription;
+  StreamSubscription<fbp.BluetoothConnectionState>?
+      _connectionStateSubscription;
   bool _manualDisconnect = false;
 
   // UUIDs para el servicio y característica BLE
@@ -255,51 +256,61 @@ class BluetoothService {
 
   // Escuchar cambios de estado de conexión BLE
   void _onConnectionStateChanged(fbp.BluetoothConnectionState state) {
+    debugPrint('[BLE_STATE] Cambio de estado de conexión: $state');
+
     if (state == fbp.BluetoothConnectionState.disconnected) {
-      debugPrint('Dispositivo BLE desconectado (estado real)');
-      
+      debugPrint(
+          '[BLE_STATE] OnConnectionStateChanged → DISCONNECTED (connection_state: 0)');
+
       // Cancelar suscripción de estado para evitar loops
       _connectionStateSubscription?.cancel();
       _connectionStateSubscription = null;
-      
+
       // Limpiar recursos
       _handleDisconnection();
-      
+
       // Auto-reconnect SOLO si la desconexión NO fue manual
       if (!_manualDisconnect && _lastDevice != null) {
         _attemptAutoReconnect();
+      } else if (_manualDisconnect) {
+        debugPrint(
+            '[BLE_STATE] Desconexión manual confirmada, no intentar reconexión');
       }
     }
   }
 
   // Intentar auto-reconexión una sola vez
   void _attemptAutoReconnect() {
-    debugPrint('Intentando auto-reconexión en 2 segundos...');
-    
+    debugPrint(
+        '[BLE_RECONNECT] Desconexión no manual detectada, esperando 2s antes de auto-reconectar...');
+
     Future.delayed(const Duration(seconds: 2), () async {
       if (_lastDevice == null || _manualDisconnect) {
+        debugPrint(
+            '[BLE_RECONNECT] Cancelado (lastDevice=null o manualDisconnect=true)');
         return;
       }
-      
+
       try {
-        debugPrint('Auto-reconectando a dispositivo...');
+        debugPrint('[BLE_RECONNECT] Intentando reconectar a dispositivo...');
         await _lastDevice!.connect(
           license: fbp.License.free,
           timeout: const Duration(seconds: 15),
           mtu: 512,
           autoConnect: false,
         );
-        
-        debugPrint('Auto-reconexión exitosa');
+
+        debugPrint('[BLE_RECONNECT] Auto-reconexión exitosa');
         _statusNotifier.value = BluetoothStatus.connected;
-        
+
         // Re-suscribirse a cambios de estado
         _connectionStateSubscription?.cancel();
         _connectionStateSubscription = _lastDevice!.connectionState.listen(
           _onConnectionStateChanged,
         );
+        debugPrint('[BLE_RECONNECT] Listeners restaurados');
       } catch (e) {
-        debugPrint('Auto-reconexión falló: $e');
+        debugPrint('[BLE_RECONNECT] Auto-reconexión falló: $e');
         _statusNotifier.value = BluetoothStatus.error;
       }
     });
@@ -330,27 +341,63 @@ class BluetoothService {
     }
   }
 
-  // Manejar desconexión
+  // Manejar desconexión - limpieza segura y defensiva
   void _handleDisconnection() {
+    debugPrint('[BLE_CLEANUP] Iniciando limpieza de recursos BLE...');
+
+    // Estado → disconnected
     _statusNotifier.value = BluetoothStatus.disconnected;
+
+    // Limpiar característica
     _bleCharacteristic = null;
+
+    // Limpiar suscripciones
     _connectionStateSubscription?.cancel();
     _connectionStateSubscription = null;
+
+    // Limpiar conexión legacy
     _connection?.dispose();
     _connection = null;
+
+    debugPrint('[BLE_CLEANUP] Recursos BLE limpios, estado = disconnected');
   }
 
   // Desconectar
   Future<void> disconnect() async {
     try {
+      debugPrint('[BLE_DISCONNECT] Iniciando desconexión manual...');
       _manualDisconnect = true;
+
+      // Cancelar escucha de estado temporalmente para evitar loops
       _connectionStateSubscription?.cancel();
       _connectionStateSubscription = null;
+
+      // Cerrar conexión física BLE si existe
+      if (_lastDevice != null) {
+        debugPrint('[BLE_DISCONNECT] Llamando disconnect() en dispositivo...');
+        await _lastDevice!.disconnect();
+        debugPrint('[BLE_DISCONNECT] disconnect() completado en dispositivo');
+      }
+
+      // Limpiar recurso legacy si existe
       await _connection?.close();
+
+      // Desactivar notificaciones
+      if (_bleCharacteristic != null) {
+        try {
+          await _bleCharacteristic!.setNotifyValue(false);
+          debugPrint('[BLE_DISCONNECT] Notificaciones desactivadas');
+        } catch (e) {
+          debugPrint(
+              '[BLE_DISCONNECT] Advertencia al desactivar notificaciones: $e');
+        }
+      }
+
+      // Limpiar estado interno
       _handleDisconnection();
-      // Desconectado correctamente (log suprimido)
+      debugPrint('[BLE_DISCONNECT] Desconexión manual completada');
     } catch (e) {
-      debugPrint('Error desconectando: $e');
+      debugPrint('[BLE_DISCONNECT] Error durante desconexión: $e');
       _handleDisconnection();
     }
   }
