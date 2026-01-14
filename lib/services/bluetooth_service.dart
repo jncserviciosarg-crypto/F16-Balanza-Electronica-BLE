@@ -31,6 +31,11 @@ class BluetoothService {
   final BluetoothAdapter _adapter = FlutterBluePlusAdapter();
   fbp.BluetoothCharacteristic? _bleCharacteristic;
 
+  // Gestión de desconexiones y auto-reconnect
+  fbp.BluetoothDevice? _lastDevice;
+  StreamSubscription<fbp.BluetoothConnectionState>? _connectionStateSubscription;
+  bool _manualDisconnect = false;
+
   // UUIDs para el servicio y característica BLE
   static const String _serviceUuid = '4fafc201-1fb5-459e-8fcc-c5c9c331914b';
   static const String _characteristicUuid =
@@ -218,6 +223,16 @@ class BluetoothService {
       _bleCharacteristic = targetCharacteristic;
       _statusNotifier.value = BluetoothStatus.connected;
 
+      // Guardar dispositivo para posible reconexión
+      _lastDevice = bleDevice;
+      _manualDisconnect = false;
+
+      // Escuchar cambios de estado de conexión (desconexiones reales)
+      _connectionStateSubscription?.cancel();
+      _connectionStateSubscription = bleDevice.connectionState.listen(
+        _onConnectionStateChanged,
+      );
+
       // Activar notificaciones para recibir datos cada 50ms
       await _bleCharacteristic!.setNotifyValue(true);
 
@@ -236,6 +251,58 @@ class BluetoothService {
       _statusNotifier.value = BluetoothStatus.error;
       return false;
     }
+  }
+
+  // Escuchar cambios de estado de conexión BLE
+  void _onConnectionStateChanged(fbp.BluetoothConnectionState state) {
+    if (state == fbp.BluetoothConnectionState.disconnected) {
+      debugPrint('Dispositivo BLE desconectado (estado real)');
+      
+      // Cancelar suscripción de estado para evitar loops
+      _connectionStateSubscription?.cancel();
+      _connectionStateSubscription = null;
+      
+      // Limpiar recursos
+      _handleDisconnection();
+      
+      // Auto-reconnect SOLO si la desconexión NO fue manual
+      if (!_manualDisconnect && _lastDevice != null) {
+        _attemptAutoReconnect();
+      }
+    }
+  }
+
+  // Intentar auto-reconexión una sola vez
+  void _attemptAutoReconnect() {
+    debugPrint('Intentando auto-reconexión en 2 segundos...');
+    
+    Future.delayed(const Duration(seconds: 2), () async {
+      if (_lastDevice == null || _manualDisconnect) {
+        return;
+      }
+      
+      try {
+        debugPrint('Auto-reconectando a dispositivo...');
+        await _lastDevice!.connect(
+          license: fbp.License.free,
+          timeout: const Duration(seconds: 15),
+          mtu: 512,
+          autoConnect: false,
+        );
+        
+        debugPrint('Auto-reconexión exitosa');
+        _statusNotifier.value = BluetoothStatus.connected;
+        
+        // Re-suscribirse a cambios de estado
+        _connectionStateSubscription?.cancel();
+        _connectionStateSubscription = _lastDevice!.connectionState.listen(
+          _onConnectionStateChanged,
+        );
+      } catch (e) {
+        debugPrint('Auto-reconexión falló: $e');
+        _statusNotifier.value = BluetoothStatus.error;
+      }
+    });
   }
 
   // Procesar datos binarios recibidos de BLE (paquete de 10 bytes)
@@ -267,6 +334,8 @@ class BluetoothService {
   void _handleDisconnection() {
     _statusNotifier.value = BluetoothStatus.disconnected;
     _bleCharacteristic = null;
+    _connectionStateSubscription?.cancel();
+    _connectionStateSubscription = null;
     _connection?.dispose();
     _connection = null;
   }
@@ -274,6 +343,9 @@ class BluetoothService {
   // Desconectar
   Future<void> disconnect() async {
     try {
+      _manualDisconnect = true;
+      _connectionStateSubscription?.cancel();
+      _connectionStateSubscription = null;
       await _connection?.close();
       _handleDisconnection();
       // Desconectado correctamente (log suprimido)
@@ -285,6 +357,8 @@ class BluetoothService {
 
   // Limpiar recursos
   void dispose() {
+    _connectionStateSubscription?.cancel();
+    _connectionStateSubscription = null;
     disconnect();
     _adcController.close();
     _statusNotifier.dispose();
