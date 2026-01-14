@@ -74,7 +74,7 @@ class SessionWeightRow extends StatelessWidget {
             Expanded(
               flex: 13,
               child: Text(
-                '${_formatWeight(pesada.peso)}',
+                _formatWeight(pesada.peso),
                 style: const TextStyle(
                   color: Colors.greenAccent,
                   fontSize: 18,

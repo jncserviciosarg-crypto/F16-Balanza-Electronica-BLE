@@ -61,7 +61,7 @@ class _HomeScreenState extends State<HomeScreen>
     _weightService.start();
 
     _tara = _weightService.tareKg;
-    _divisionMinima = _weight_service_divisionFallback(_weightService);
+    _divisionMinima = _weightServiceDivisionFallback(_weightService);
     _unidad = _weightService.loadCellConfig.unidad;
 
     _weightSubscription =
@@ -100,7 +100,7 @@ class _HomeScreenState extends State<HomeScreen>
   }
 
   // pequeña función helper para evitar crash si loadCellConfig aún no cargó (defensiva)
-  double _weight_service_divisionFallback(WeightService svc) {
+  double _weightServiceDivisionFallback(WeightService svc) {
     try {
       return svc.divisionMinima;
     } catch (_) {
@@ -263,6 +263,7 @@ class _HomeScreenState extends State<HomeScreen>
                   filenamePrefix: 'home_screen');
             } else {
               if (!mounted) return;
+              if (!context.mounted) return;
               ScaffoldMessenger.of(context).showSnackBar(
                 const SnackBar(
                   content: Text('Error al capturar pantalla'),
@@ -317,7 +318,7 @@ class _HomeScreenState extends State<HomeScreen>
           message: tooltip,
           child: Container(
             decoration: BoxDecoration(
-              color: Colors.grey[850]!.withOpacity(0.9),
+              color: Colors.grey[850]!.withValues(alpha: 0.9),
               borderRadius: BorderRadius.circular(8),
               border: Border.all(color: color, width: 2),
             ),

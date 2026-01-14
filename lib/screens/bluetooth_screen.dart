@@ -178,6 +178,9 @@ class _BluetoothScreenState extends State<BluetoothScreen> {
       return;
     }
 
+    if (!mounted) return;
+    if (!context.mounted) return;
+
     showDialog(
       context: context,
       barrierDismissible: false,
@@ -186,11 +189,11 @@ class _BluetoothScreenState extends State<BluetoothScreen> {
       ),
     );
 
-    // Usar la dirección MAC/ID del dispositivo BLE
-    final String deviceAddress = scanResult.device.remoteId.str;
-    bool connected = await _bluetoothService.connect(deviceAddress);
+    // Usar el ScanResult directamente
+    bool connected = await _bluetoothService.connect(scanResult);
 
     if (!mounted) return;
+    if (!context.mounted) return;
 
     Navigator.pop(context);
 

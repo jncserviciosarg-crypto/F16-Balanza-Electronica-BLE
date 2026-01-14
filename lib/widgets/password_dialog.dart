@@ -135,7 +135,8 @@ class _PasswordDialogState extends State<PasswordDialog> {
           child: Material(
             elevation: 10,
             borderRadius: BorderRadius.circular(12),
-            color: Theme.of(context).dialogBackgroundColor,
+            color: Theme.of(context).dialogTheme.backgroundColor ??
+                const Color(0xFF2C3E50),
             child: SingleChildScrollView(
               padding: const EdgeInsets.all(5),
               child: Column(

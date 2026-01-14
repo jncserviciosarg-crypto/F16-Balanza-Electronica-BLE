@@ -131,11 +131,15 @@ class _CalibrationScreenState extends State<CalibrationScreen> {
     }
     double? valor =
         double.tryParse(_factorCorreccionController.text.replaceAll(',', '.'));
-    if (valor == null) valor = 0.0;
+    valor ??= 0.0;
     valor = valor.clamp(-10.0, 10.0);
     double factorDecimal = valor / 100.0;
-    if (factorDecimal < -0.10) factorDecimal = -0.10;
-    if (factorDecimal > 0.10) factorDecimal = 0.10;
+    if (factorDecimal < -0.10) {
+      factorDecimal = -0.10;
+    }
+    if (factorDecimal > 0.10) {
+      factorDecimal = 0.10;
+    }
 
     final LoadCellConfig actual = _weightService.loadCellConfig;
     final LoadCellConfig nuevo =
@@ -462,16 +466,14 @@ class _CalibrationScreenState extends State<CalibrationScreen> {
                   await ScreenshotHelper.sharePng(bytes,
                       filenamePrefix: 'calibracion');
                 }
-                if (!mounted)
-                  return;
-                else {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(
-                      content: const Text('Error al capturar pantalla'),
-                      backgroundColor: Colors.red[800], // F-16
-                    ),
-                  );
-                }
+                if (!mounted) return;
+                if (!context.mounted) return;
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(
+                    content: const Text('Error al capturar pantalla'),
+                    backgroundColor: Colors.red[800], // F-16
+                  ),
+                );
               },
             ),
           ],

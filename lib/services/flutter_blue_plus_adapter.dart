@@ -26,7 +26,7 @@ class FlutterBluePlusAdapter implements BluetoothAdapter {
 
       // Obtener todos los dispositivos connectable
       final List<fbp.BluetoothDevice> connectedDevices =
-          await fbp.FlutterBluePlus.connectedDevices;
+          fbp.FlutterBluePlus.connectedDevices;
 
       for (var device in connectedDevices) {
         // Crear un BluetoothDevice compatible con la interfaz
@@ -78,9 +78,13 @@ class FlutterBluePlusAdapter implements BluetoothAdapter {
       }
 
       // Conectar al dispositivo (v2.1+)
-      // license es requerido en v2.1.0, pasamos cadena vacía
-      // ignore: missing_required_argument
-      await device.connect();
+      // license es requerido en v2.1.0
+      await device.connect(
+        license: fbp.License.free,
+        timeout: const Duration(seconds: 15),
+        mtu: 512,
+        autoConnect: false,
+      );
 
       // Retornar el dispositivo como conexión
       return device;

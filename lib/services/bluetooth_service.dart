@@ -82,6 +82,7 @@ class BluetoothService {
       if (sdkInt >= 31) {
         // Android 12+ (API 31+)
         permissionsToRequest = <Permission>[
+          Permission.location,
           Permission.bluetoothScan,
           Permission.bluetoothConnect,
         ];
@@ -158,8 +159,8 @@ class BluetoothService {
     }
   }
 
-  // Conectar a dispositivo por dirección MAC
-  Future<bool> connect(String address) async {
+  // Conectar a dispositivo usando ScanResult
+  Future<bool> connect(fbp.ScanResult scanResult) async {
     try {
       if (status != BluetoothStatus.disconnected) {
         await disconnect();
@@ -168,20 +169,17 @@ class BluetoothService {
       /// Marcar estado como conectando
       _statusNotifier.value = BluetoothStatus.connecting;
 
-      // Buscar el dispositivo BLE por dirección MAC
-      final fbp.BluetoothDevice? bleDevice =
-          await _findBleDeviceByAddress(address);
-      if (bleDevice == null) {
-        _statusNotifier.value = BluetoothStatus.error;
-        debugPrint(
-            'Error: No se encontró dispositivo BLE con dirección $address');
-        return false;
-      }
+      // Usar directamente el dispositivo BLE del ScanResult
+      final fbp.BluetoothDevice bleDevice = scanResult.device;
 
       // Conectar al dispositivo BLE (v2.1+)
-      // license es requerido en v2.1.0, pasamos cadena vacía
-      // ignore: missing_required_argument
-      await bleDevice.connect();
+      // license es requerido en v2.1.0
+      await bleDevice.connect(
+        license: fbp.License.free,
+        timeout: const Duration(seconds: 15),
+        mtu: 512,
+        autoConnect: false,
+      );
 
       // Descubrir servicios
       final List<fbp.BluetoothService> services =
@@ -232,32 +230,11 @@ class BluetoothService {
         },
       );
 
-      // Usar adaptador para mantener conexión legacy si es necesario
-      final dynamic conn = await _adapter.connectToAddress(address);
-      _connection = conn;
-
       return true;
     } catch (e) {
       debugPrint('Error conectando: $e');
       _statusNotifier.value = BluetoothStatus.error;
       return false;
-    }
-  }
-
-  /// Buscar dispositivo BLE por dirección MAC
-  Future<fbp.BluetoothDevice?> _findBleDeviceByAddress(String address) async {
-    try {
-      final List<fbp.BluetoothDevice> systemDevices =
-          await fbp.FlutterBluePlus.systemDevices([]);
-      for (var device in systemDevices) {
-        if (device.remoteId.str == address) {
-          return device;
-        }
-      }
-      return null;
-    } catch (e) {
-      debugPrint('Error buscando dispositivo BLE: $e');
-      return null;
     }
   }
 

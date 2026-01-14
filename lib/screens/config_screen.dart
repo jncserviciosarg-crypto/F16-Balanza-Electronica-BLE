@@ -239,6 +239,7 @@ class _ConfigScreenState extends State<ConfigScreen> {
                       filenamePrefix: 'configuracion');
                 } else {
                   if (!mounted) return;
+                  if (!context.mounted) return;
                   ScaffoldMessenger.of(context).showSnackBar(
                     SnackBar(
                       content: const Text('Error al capturar pantalla'),

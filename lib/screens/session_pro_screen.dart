@@ -161,6 +161,7 @@ class _SessionProScreenState extends State<SessionProScreen> {
                         filenamePrefix: 'session_${widget.tipo}');
                   } else {
                     if (!mounted) return;
+                    if (!context.mounted) return;
                     ScaffoldMessenger.of(context).showSnackBar(
                       SnackBar(
                         content: const Text('Error al capturar pantalla'),
@@ -342,7 +343,8 @@ class _SessionProScreenState extends State<SessionProScreen> {
             color: Colors.blueGrey[600]!, width: 1), // F-16: azul militar fino
         boxShadow: <BoxShadow>[
           BoxShadow(
-            color: Colors.blueGrey.withOpacity(0.15), // F-16: glow HUD sutil
+            color:
+                Colors.blueGrey.withValues(alpha: 0.15), // F-16: glow HUD sutil
             blurRadius: 8,
             spreadRadius: 0,
           ),
@@ -536,7 +538,7 @@ class _SessionProScreenState extends State<SessionProScreen> {
             borderRadius: BorderRadius.circular(4), // F-16: angular
             boxShadow: <BoxShadow>[
               BoxShadow(
-                color: baseColor.withOpacity(0.2),
+                color: baseColor.withValues(alpha: 0.2),
                 blurRadius: 6, // F-16: glow sutil
                 spreadRadius: 0,
               ),
@@ -1201,13 +1203,13 @@ class _SessionProScreenState extends State<SessionProScreen> {
                   await Share.shareXFiles(<XFile>[XFile(path)],
                       text: 'Sesión XLSX - ${sessionFinal.id}');
                 } catch (e) {
-                  if (mounted) {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      SnackBar(
-                          content: Text('Error al exportar XLSX: $e'),
-                          backgroundColor: Colors.red[800]),
-                    );
-                  }
+                  if (!mounted) return;
+                  if (!context.mounted) return;
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(
+                        content: Text('Error al exportar XLSX: $e'),
+                        backgroundColor: Colors.red[800]),
+                  );
                 }
               },
               child: Text('XLSX',
@@ -1224,13 +1226,13 @@ class _SessionProScreenState extends State<SessionProScreen> {
                   await Share.shareXFiles(<XFile>[XFile(path)],
                       text: 'Sesión PDF - ${sessionFinal.id}');
                 } catch (e) {
-                  if (mounted) {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      SnackBar(
-                          content: Text('Error al exportar PDF: $e'),
-                          backgroundColor: Colors.red[800]),
-                    );
-                  }
+                  if (!mounted) return;
+                  if (!context.mounted) return;
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(
+                        content: Text('Error al exportar PDF: $e'),
+                        backgroundColor: Colors.red[800]),
+                  );
                 }
               },
               child: Text('PDF',
