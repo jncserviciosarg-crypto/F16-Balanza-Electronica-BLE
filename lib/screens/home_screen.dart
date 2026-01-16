@@ -284,6 +284,7 @@ class _HomeScreenState extends State<HomeScreen>
   }
 
   /// ETAPA F2.2: Indicador visual reactivo de estado Bluetooth
+  /// Clickeable para forzar reconexión manual si desconectado/error
   Widget _buildBluetoothStatusIndicator() {
     return ValueListenableBuilder<BluetoothStatus>(
       valueListenable: _weightService.bluetoothStatusNotifier,
@@ -291,42 +292,55 @@ class _HomeScreenState extends State<HomeScreen>
         IconData icon;
         Color color;
         String tooltip;
+        bool isClickable = false;
 
         switch (status) {
           case BluetoothStatus.connected:
             icon = Icons.bluetooth_connected;
             color = Colors.green;
             tooltip = 'Bluetooth: Conectado';
+            isClickable = false;
             break;
           case BluetoothStatus.connecting:
             icon = Icons.bluetooth_searching;
             color = Colors.orange;
             tooltip = 'Bluetooth: Conectando...';
+            isClickable = false;
             break;
           case BluetoothStatus.error:
             icon = Icons.bluetooth_disabled;
             color = Colors.red;
-            tooltip = 'Bluetooth: Error de conexión';
+            tooltip = 'Bluetooth: Error - tap para reconectar';
+            isClickable = true;
             break;
           case BluetoothStatus.disconnected:
             icon = Icons.bluetooth_disabled;
             color = Colors.grey;
-            tooltip = 'Bluetooth: Desconectado';
+            tooltip = 'Bluetooth: Desconectado - tap para reconectar';
+            isClickable = true;
         }
 
         return Tooltip(
           message: tooltip,
-          child: Container(
-            decoration: BoxDecoration(
-              color: Colors.grey[850]!.withValues(alpha: 0.9),
-              borderRadius: BorderRadius.circular(8),
-              border: Border.all(color: color, width: 2),
-            ),
-            padding: const EdgeInsets.all(6),
-            child: Icon(
-              icon,
-              color: color,
-              size: 24,
+          child: GestureDetector(
+            onTap: isClickable
+                ? () async {
+                    debugPrint('[UI] Tap en indicador BLE - intentando reconectar');
+                    await _weightService.attemptManualReconnect();
+                  }
+                : null,
+            child: Container(
+              decoration: BoxDecoration(
+                color: Colors.grey[850]!.withValues(alpha: 0.9),
+                borderRadius: BorderRadius.circular(8),
+                border: Border.all(color: color, width: 2),
+              ),
+              padding: const EdgeInsets.all(6),
+              child: Icon(
+                icon,
+                color: color,
+                size: 24,
+              ),
             ),
           ),
         );

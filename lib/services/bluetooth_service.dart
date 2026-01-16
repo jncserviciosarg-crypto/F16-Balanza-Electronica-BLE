@@ -71,6 +71,14 @@ class BluetoothService {
   /// Acceso directo al estado actual
   BluetoothStatus get status => _statusNotifier.value;
 
+  /// Obtener nombre del dispositivo conectado o último dispositivo
+  String? get connectedDeviceName {
+    if (_lastDevice != null) {
+      return _lastDevice!.platformName;
+    }
+    return null;
+  }
+
   /// Verifica y solicita permisos de Bluetooth según la versión de Android
   /// Retorna true si todos los permisos están concedidos, false en caso contrario
   Future<bool> checkAndRequestPermissions() async {
@@ -501,6 +509,112 @@ class BluetoothService {
     } catch (e) {
       debugPrint('[BLE_DISCONNECT] Error durante desconexión: $e');
       _handleDisconnection();
+    }
+  }
+
+  /// Intento manual de reconexión sin scan BLE
+  /// Reutiliza el dispositivo _lastDevice si está disponible
+  /// Útil para reconectar desde UI sin abrir pantalla Bluetooth
+  /// Solo ejecuta si no hay un intento en progreso
+  Future<void> attemptManualReconnect() async {
+    try {
+      if (_lastDevice == null) {
+        debugPrint(
+            '[BLE_MANUAL_RECONNECT] Cancelado: no existe _lastDevice guardado');
+        return;
+      }
+
+      if (_statusNotifier.value == BluetoothStatus.connected) {
+        debugPrint(
+            '[BLE_MANUAL_RECONNECT] Cancelado: ya está conectado');
+        return;
+      }
+
+      if (_statusNotifier.value == BluetoothStatus.connecting) {
+        debugPrint(
+            '[BLE_MANUAL_RECONNECT] Cancelado: reconexión ya en progreso');
+        return;
+      }
+
+      debugPrint(
+          '[BLE_MANUAL_RECONNECT] Iniciando reconexión manual desde UI...');
+      _manualDisconnect = false; // Permitir reconexión
+      _reconnectAttempts = 0; // Reset contador
+      _statusNotifier.value = BluetoothStatus.connecting;
+
+      // Reutilizar lógica de conexión
+      await _lastDevice!.connect(
+        license: fbp.License.free,
+        timeout: const Duration(seconds: 15),
+        mtu: 512,
+        autoConnect: false,
+      );
+
+      debugPrint(
+          '[BLE_MANUAL_RECONNECT] Conexión física exitosa, reinicializando...');
+
+      // Re-inicializar completamente (como en connect() y _attemptAutoReconnect())
+      final List<fbp.BluetoothService> services =
+          await _lastDevice!.discoverServices();
+      fbp.BluetoothService? targetService;
+      for (var service in services) {
+        if (service.uuid.str == _serviceUuid) {
+          targetService = service;
+          break;
+        }
+      }
+
+      if (targetService == null) {
+        await _lastDevice!.disconnect();
+        _statusNotifier.value = BluetoothStatus.error;
+        debugPrint(
+            '[BLE_MANUAL_RECONNECT] Error: Servicio $_serviceUuid no encontrado');
+        return;
+      }
+
+      fbp.BluetoothCharacteristic? targetCharacteristic;
+      for (var characteristic in targetService.characteristics) {
+        if (characteristic.uuid.str == _characteristicUuid) {
+          targetCharacteristic = characteristic;
+          break;
+        }
+      }
+
+      if (targetCharacteristic == null) {
+        await _lastDevice!.disconnect();
+        _statusNotifier.value = BluetoothStatus.error;
+        debugPrint(
+            '[BLE_MANUAL_RECONNECT] Error: Característica $_characteristicUuid no encontrada');
+        return;
+      }
+
+      _bleCharacteristic = targetCharacteristic;
+      _statusNotifier.value = BluetoothStatus.connected;
+
+      // Re-suscribir a cambios de estado
+      _connectionStateSubscription?.cancel();
+      _connectionStateSubscription = _lastDevice!.connectionState.listen(
+        _onConnectionStateChanged,
+      );
+
+      // Activar notificaciones
+      await _bleCharacteristic!.setNotifyValue(true);
+      debugPrint('[BLE_MANUAL_RECONNECT] Notificaciones activadas');
+
+      // Re-suscribir a datos
+      _bleCharacteristic!.onValueReceived.listen(
+        _onBinaryDataReceived,
+        onError: (error) {
+          debugPrint('[BLE_MANUAL_RECONNECT] Error recibiendo datos: $error');
+          _handleDisconnection();
+        },
+      );
+
+      debugPrint(
+          '[BLE_MANUAL_RECONNECT] ✅ Reconexión manual exitosa');
+    } catch (e) {
+      debugPrint('[BLE_MANUAL_RECONNECT] ❌ Error: $e');
+      _statusNotifier.value = BluetoothStatus.error;
     }
   }
 

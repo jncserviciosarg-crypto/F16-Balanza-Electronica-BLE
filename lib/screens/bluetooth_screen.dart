@@ -31,6 +31,9 @@ class _BluetoothScreenState extends State<BluetoothScreen> {
   void initState() {
     super.initState();
     _checkBluetoothAndLoadDevices();
+    // Recuperar nombre del dispositivo conectado si existe
+    _updateConnectedDeviceName();
+    
     ValueListenableBuilder<BluetoothStatus>(
       valueListenable: _bluetoothService.statusNotifier,
       builder: (context, status, _) {
@@ -157,6 +160,23 @@ class _BluetoothScreenState extends State<BluetoothScreen> {
         return 'CONECTADO';
       case BluetoothStatus.error:
         return 'ERROR DE CONEXIÓN';
+    }
+  }
+
+  /// Recuperar nombre del dispositivo conectado si existe
+  /// Soluciona bug de nombre null al regresar a la pantalla
+  void _updateConnectedDeviceName() {
+    if (_bluetoothService.isConnected) {
+      // Si está conectado pero no tenemos nombre guardado, intentar obtenerlo
+      if (_connectedDeviceName == null || _connectedDeviceName!.isEmpty) {
+        final String? deviceName = _bluetoothService.connectedDeviceName;
+        if (deviceName != null && deviceName.isNotEmpty) {
+          setState(() {
+            _connectedDeviceName = deviceName;
+          });
+          debugPrint('[BLE_SCREEN] Nombre recuperado del servicio: $deviceName');
+        }
+      }
     }
   }
 
