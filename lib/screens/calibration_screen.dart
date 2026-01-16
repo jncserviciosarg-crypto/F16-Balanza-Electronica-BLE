@@ -412,9 +412,20 @@ class _CalibrationScreenState extends State<CalibrationScreen> {
             color = Colors.grey;
         }
 
+        bool isClickable = status == BluetoothStatus.disconnected ||
+            status == BluetoothStatus.error;
+
         return Tooltip(
           message: _getBluetoothStatusText(status),
-          child: Icon(icon, color: color, size: 20),
+          child: GestureDetector(
+            onTap: isClickable
+                ? () async {
+                    debugPrint('[BLE_MANUAL] Reconexión manual solicitada desde CalibrationScreen');
+                    await _weightService.attemptManualReconnect();
+                  }
+                : null,
+            child: Icon(icon, color: color, size: 20),
+          ),
         );
       },
     );

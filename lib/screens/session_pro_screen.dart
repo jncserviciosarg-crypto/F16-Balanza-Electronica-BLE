@@ -303,9 +303,20 @@ class _SessionProScreenState extends State<SessionProScreen> {
             color = Colors.grey;
         }
 
+        bool isClickable = status == BluetoothStatus.disconnected ||
+            status == BluetoothStatus.error;
+
         return Tooltip(
           message: _getBluetoothStatusText(status),
-          child: Icon(icon, color: color, size: 18),
+          child: GestureDetector(
+            onTap: isClickable
+                ? () async {
+                    debugPrint('[BLE_MANUAL] Reconexión manual solicitada desde SessionProScreen');
+                    await _weightService.attemptManualReconnect();
+                  }
+                : null,
+            child: Icon(icon, color: color, size: 18),
+          ),
         );
       },
     );

@@ -183,9 +183,20 @@ class _ConfigScreenState extends State<ConfigScreen> {
             color = Colors.grey;
         }
 
+        bool isClickable = status == BluetoothStatus.disconnected ||
+            status == BluetoothStatus.error;
+
         return Tooltip(
           message: _getBluetoothStatusText(status),
-          child: Icon(icon, color: color, size: 20),
+          child: GestureDetector(
+            onTap: isClickable
+                ? () async {
+                    debugPrint('[BLE_MANUAL] Reconexión manual solicitada desde ConfigScreen');
+                    await _weightService.attemptManualReconnect();
+                  }
+                : null,
+            child: Icon(icon, color: color, size: 20),
+          ),
         );
       },
     );
