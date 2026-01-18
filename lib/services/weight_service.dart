@@ -340,6 +340,11 @@ class WeightService {
     }
   }
 
+  /// Proxy para reconexión manual vía Bluetooth
+  Future<void> attemptManualReconnect() {
+    return _bluetoothService.attemptManualReconnect();
+  }
+
   WeightState get currentState => _currentState;
   CalibrationModel get calibration => _calibration;
   FilterParams get filterParams => _filterParams;
