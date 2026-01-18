@@ -350,7 +350,7 @@ class _F16SplashScreenState extends State<F16SplashScreen>
 /// Pequeño punto pulsante usado para indicar "EN PRUEBA"
 class _PulsingDot extends StatefulWidget {
   final Color color;
-  const _PulsingDot({super.key, required this.color});
+  const _PulsingDot({required this.color});
 
   @override
   __PulsingDotState createState() => __PulsingDotState();
