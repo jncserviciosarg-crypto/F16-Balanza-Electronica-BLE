@@ -202,6 +202,7 @@ class _HomeScreenState extends State<HomeScreen>
     return RepaintBoundary(
       key: _screenshotKey,
       child: Scaffold(
+        backgroundColor: Colors.grey[850], // Cobertura 100% del viewport
         body: SafeArea(
           child: LayoutBuilder(
             // Nuevo: responsive layout

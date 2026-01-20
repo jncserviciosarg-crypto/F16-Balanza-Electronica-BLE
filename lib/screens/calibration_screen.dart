@@ -461,6 +461,7 @@ class _CalibrationScreenState extends State<CalibrationScreen> {
     return RepaintBoundary(
       key: _screenshotKey,
       child: Scaffold(
+        backgroundColor: Colors.grey[900], // Cobertura 100% del viewport
         appBar: PreferredSize(
           preferredSize: const Size.fromHeight(50.0),
           child: AppBar(
