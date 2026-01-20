@@ -57,6 +57,12 @@ class _SessionProScreenState extends State<SessionProScreen> {
   double _taraHoldProgress = 0.0; // 0.0 -> 1.0 progreso visual
   static const int _taraHoldMillis = 3000;
 
+  // === CONTROL DE HOLD-TO-ADD PESADA (3 SEGUNDOS) ===
+  Timer? _addPesadaProgressTimer;
+  bool _addPesadaHoldInProgress = false;
+  double _addPesadaHoldProgress = 0.0;
+  static const int _addPesadaHoldMillis = 3000;
+
   // Propiedad calculada para peso parcial:
   // - Si es 'carga': parcial = peso actual - taraParcial (kg añadidos)
   // - Si es 'descarga': parcial = taraParcial - peso actual (kg removidos)
@@ -113,6 +119,10 @@ class _SessionProScreenState extends State<SessionProScreen> {
   @override
   void dispose() {
     _weightSubscription?.cancel();
+    // Limpiar timers de hold
+    _taraProgressTimer?.cancel();
+    _addPesadaProgressTimer?.cancel();
+    // Controllers
     _patenteController.dispose();
     _productoController.dispose();
     _choferController.dispose();
@@ -311,7 +321,8 @@ class _SessionProScreenState extends State<SessionProScreen> {
           child: GestureDetector(
             onTap: isClickable
                 ? () async {
-                    debugPrint('[BLE_MANUAL] Reconexión manual solicitada desde SessionProScreen');
+                    debugPrint(
+                        '[BLE_MANUAL] Reconexión manual solicitada desde SessionProScreen');
                     await _weightService.attemptManualReconnect();
                   }
                 : null,
@@ -461,67 +472,102 @@ class _SessionProScreenState extends State<SessionProScreen> {
   Widget _buildBotonAgregarVertical({bool isMobile = false}) {
     final bool canAdd = _session.pesadas.length < _maxPesadas;
 
-    final double iconSize = isMobile ? 24.0 : 28.0; // F-16: iconos grandes
+    // Color que cambia con el progreso
+    final Color baseColor = Colors.blueGrey[700]!;
+    final Color progressColor = canAdd
+        ? Color.lerp(Colors.grey[800], baseColor, _addPesadaHoldProgress) ??
+            baseColor
+        : Colors.grey[800]!;
+
+    final double iconSize = isMobile ? 24.0 : 28.0;
     final double fontSize = isMobile ? 10.0 : 11.5;
 
     return Container(
       margin: const EdgeInsets.all(3),
-      //     margin: const EdgeInsets.only(
-      //         left: 1, bottom: 1, top: 1, right: 1), // F-16: compacto
-      child: Column(
-        children: <Widget>[
-          // Botón AGREGAR
-          Expanded(
-            child: ElevatedButton(
-              onPressed: canAdd ? _agregarPesada : null,
-              style: ElevatedButton.styleFrom(
-                backgroundColor: Colors.blueGrey[700], // F-16: azul militar
-                disabledBackgroundColor: Colors.grey[800],
-                padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 2),
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(4), // F-16: angular
+      child: GestureDetector(
+        onTapDown: canAdd ? (_) => _startAddPesadaHold() : null,
+        onTapUp: canAdd ? (_) => _cancelAddPesadaHoldIfNotCompleted() : null,
+        onTapCancel: canAdd ? _cancelAddPesadaHoldIfNotCompleted : null,
+        behavior: HitTestBehavior.translucent,
+        child: AnimatedContainer(
+          duration: const Duration(milliseconds: 120),
+          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 10),
+          decoration: BoxDecoration(
+            color: progressColor,
+            borderRadius: BorderRadius.circular(4), // F-16: angular
+            boxShadow: canAdd
+                ? [
+                    BoxShadow(
+                      color: baseColor.withValues(alpha: 0.2),
+                      blurRadius: 6, // F-16: glow sutil
+                      spreadRadius: 0,
+                    ),
+                  ]
+                : null,
+          ),
+          child: Stack(
+            children: <Widget>[
+              // Barra de progreso
+              if (_addPesadaHoldInProgress)
+                Align(
+                  alignment: Alignment.bottomLeft,
+                  child: FractionallySizedBox(
+                    widthFactor: _addPesadaHoldProgress,
+                    child: Container(
+                      height: 4,
+                      decoration: BoxDecoration(
+                        color: Colors.blueGrey[900]!
+                            .withValues(alpha: 0.5), // F-16: progreso oscuro
+                        borderRadius: const BorderRadius.vertical(
+                          bottom: Radius.circular(4),
+                        ),
+                      ),
+                    ),
+                  ),
                 ),
-                elevation: 3, // F-16: sombra sutil
-              ),
-              child: Center(
+              Center(
                 child: Column(
                   mainAxisSize: MainAxisSize.min,
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: <Widget>[
                     Icon(
-                      Icons.add_circle_outline,
+                      _addPesadaHoldProgress >= 1.0
+                          ? Icons.check_circle_outline
+                          : Icons.add_circle_outline,
                       size: iconSize,
                       color: canAdd ? Colors.white : Colors.white30,
                     ),
                     const SizedBox(height: 2),
                     Text(
-                      canAdd ? 'AGREGAR\nPESADA' : 'LÍMITE\nALCANZADO',
+                      canAdd ? 'AGREGAR\nPESADA\n(3S)' : 'LÍMITE\nALCANZADO',
                       textAlign: TextAlign.center,
                       style: TextStyle(
                         fontSize: fontSize,
                         fontWeight: FontWeight.bold,
-                        letterSpacing: 1.2, // F-16: espaciado militar
+                        letterSpacing: 1.2,
                         height: 1.0,
                         color: canAdd ? Colors.white : Colors.white30,
                       ),
                     ),
                     SizedBox(
-                      height: fontSize + 3, // Altura fija
+                      height: fontSize + 3,
                       child: canAdd
-                          ? Text('${_session.pesadas.length}/$_maxPesadas',
+                          ? Text(
+                              '${_session.pesadas.length}/$_maxPesadas',
                               style: TextStyle(
                                 fontSize: fontSize - 1,
                                 color: Colors.grey[400],
                                 fontWeight: FontWeight.w600,
-                              ))
+                              ),
+                            )
                           : const SizedBox.shrink(),
                     ),
                   ],
                 ),
               ),
-            ),
+            ],
           ),
-        ],
+        ),
       ),
     );
   }
@@ -655,6 +701,71 @@ class _SessionProScreenState extends State<SessionProScreen> {
     Future.delayed(const Duration(milliseconds: 400), () {
       _taraHoldProgress = 0.0;
       setState(() {});
+    });
+  }
+
+  void _startAddPesadaHold() {
+    if (_addPesadaHoldInProgress) return;
+    if (_session.pesadas.length >= _maxPesadas) {
+      _mostrarError('Máximo $_maxPesadas pesadas por sesión');
+      return;
+    }
+
+    _addPesadaHoldInProgress = true;
+    _addPesadaHoldProgress = 0.0;
+    setState(() {});
+
+    int elapsed = 0;
+    _addPesadaProgressTimer = Timer.periodic(
+      const Duration(milliseconds: 100),
+      (Timer t) {
+        elapsed += 100;
+        _addPesadaHoldProgress =
+            (elapsed / _addPesadaHoldMillis).clamp(0.0, 1.0);
+        if (_addPesadaHoldProgress >= 1.0) {
+          t.cancel();
+          _triggerAddPesada();
+        }
+        setState(() {});
+      },
+    );
+  }
+
+  void _cancelAddPesadaHoldIfNotCompleted([TapUpDetails? _]) {
+    if (!_addPesadaHoldInProgress) return;
+    if (_addPesadaHoldProgress >= 1.0) return; // ya completado
+
+    _addPesadaProgressTimer?.cancel();
+    _addPesadaHoldInProgress = false;
+    final double timeInSeconds = _addPesadaHoldProgress * 3.0;
+    _addPesadaHoldProgress = 0.0;
+    setState(() {});
+
+    // Mensaje de feedback si canceló antes de tiempo
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(
+          'Cancelado - Debe mantener ${timeInSeconds.toStringAsFixed(1)}s de 3.0s',
+        ),
+        duration: const Duration(seconds: 1),
+        backgroundColor: Colors.orange,
+      ),
+    );
+  }
+
+  void _triggerAddPesada() {
+    _addPesadaHoldInProgress = false;
+    _addPesadaHoldProgress = 1.0;
+
+    // Ejecutar la lógica EXISTENTE de agregar pesada
+    _agregarPesada();
+
+    // Reset visual después de breve demora
+    Future.delayed(const Duration(milliseconds: 400), () {
+      if (mounted) {
+        _addPesadaHoldProgress = 0.0;
+        setState(() {});
+      }
     });
   }
 
