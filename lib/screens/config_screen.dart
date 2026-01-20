@@ -8,6 +8,7 @@ import '../services/weight_service.dart';
 import '../services/bluetooth_service.dart';
 import 'package:f16_balanza_electronica/widgets/filter_editor.dart';
 import '../utils/screenshot_helper.dart';
+import '../utils/constants.dart';
 
 class ConfigScreen extends StatefulWidget {
   const ConfigScreen({super.key});
@@ -191,11 +192,21 @@ class _ConfigScreenState extends State<ConfigScreen> {
           child: GestureDetector(
             onTap: isClickable
                 ? () async {
-                    debugPrint('[BLE_MANUAL] Reconexión manual solicitada desde ConfigScreen');
+                    debugPrint(
+                        '[BLE_MANUAL] Reconexión manual solicitada desde ConfigScreen');
                     await _weightService.attemptManualReconnect();
                   }
                 : null,
-            child: Icon(icon, color: color, size: 20),
+            child: Container(
+              width: AppConstants.minTapTargetSize,
+              height: AppConstants.minTapTargetSize,
+              padding: EdgeInsets.all(AppConstants.tapTargetPadding),
+              child: Icon(
+                icon,
+                color: color,
+                size: AppConstants.bluetoothIconSize,
+              ),
+            ),
           ),
         );
       },
@@ -221,51 +232,54 @@ class _ConfigScreenState extends State<ConfigScreen> {
     return RepaintBoundary(
       key: _screenshotKey,
       child: Scaffold(
-        appBar: AppBar(
-          title: const Text(
-            'CONFIGURACIÓN', // F-16: MAYÚSCULAS
-            style: TextStyle(
-              fontWeight: FontWeight.bold,
-              letterSpacing: 1.5, // F-16: espaciado militar
-              fontSize: 14,
-            ),
-          ),
-          backgroundColor: Colors.blueGrey[800], // F-16: azul militar
-          actions: <Widget>[
-            // ETAPA F2.2: Indicador de estado Bluetooth compacto
-            Center(
-              child: Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 8.0),
-                child: _buildBluetoothStatusBadge(),
+        appBar: PreferredSize(
+          preferredSize: const Size.fromHeight(50.0),
+          child: AppBar(
+            title: const Text(
+              'CONFIGURACIÓN', // F-16: MAYÚSCULAS
+              style: TextStyle(
+                fontWeight: FontWeight.bold,
+                letterSpacing: 1.5, // F-16: espaciado militar
+                fontSize: 14,
               ),
             ),
-            IconButton(
-              icon: Icon(Icons.camera_alt,
-                  color: Colors.grey[400]), // F-16: icono gris
-              onPressed: () async {
-                final Uint8List? bytes =
-                    await ScreenshotHelper.captureWidget(_screenshotKey);
-                if (bytes != null) {
-                  await ScreenshotHelper.sharePng(bytes,
-                      filenamePrefix: 'configuracion');
-                } else {
-                  if (!mounted) return;
-                  if (!context.mounted) return;
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(
-                      content: const Text('Error al capturar pantalla'),
-                      backgroundColor: Colors.red[800], // F-16
-                    ),
-                  );
-                }
-              },
-            ),
-          ],
+            backgroundColor: Colors.blueGrey[800], // F-16: azul militar
+            actions: <Widget>[
+              // ETAPA F2.2: Indicador de estado Bluetooth compacto
+              Center(
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 8.0),
+                  child: _buildBluetoothStatusBadge(),
+                ),
+              ),
+              IconButton(
+                icon: Icon(Icons.camera_alt,
+                    color: Colors.grey[400]), // F-16: icono gris
+                onPressed: () async {
+                  final Uint8List? bytes =
+                      await ScreenshotHelper.captureWidget(_screenshotKey);
+                  if (bytes != null) {
+                    await ScreenshotHelper.sharePng(bytes,
+                        filenamePrefix: 'configuracion');
+                  } else {
+                    if (!mounted) return;
+                    if (!context.mounted) return;
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(
+                        content: const Text('Error al capturar pantalla'),
+                        backgroundColor: Colors.red[800], // F-16
+                      ),
+                    );
+                  }
+                },
+              ),
+            ],
+          ),
         ),
         body: Container(
           color: Colors.grey[900], // F-16: fondo oscuro
           child: SingleChildScrollView(
-            padding: const EdgeInsets.all(12),
+            padding: const EdgeInsets.all(4),
             child: LayoutBuilder(
               builder: (BuildContext context, BoxConstraints constraints) {
                 bool isWideScreen = constraints.maxWidth > 600;
@@ -281,7 +295,7 @@ class _ConfigScreenState extends State<ConfigScreen> {
                           ],
                         ),
                       ),
-                      const SizedBox(width: 12),
+                      const SizedBox(width: 4),
                       Expanded(
                         child: Column(
                           children: <Widget>[

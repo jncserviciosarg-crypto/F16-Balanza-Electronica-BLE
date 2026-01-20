@@ -9,6 +9,7 @@ import '../models/load_cell_config.dart';
 import '../services/auth_service.dart';
 import '../widgets/password_dialog.dart';
 import '../utils/screenshot_helper.dart';
+import '../utils/constants.dart';
 
 class CalibrationScreen extends StatefulWidget {
   const CalibrationScreen({super.key});
@@ -420,11 +421,21 @@ class _CalibrationScreenState extends State<CalibrationScreen> {
           child: GestureDetector(
             onTap: isClickable
                 ? () async {
-                    debugPrint('[BLE_MANUAL] Reconexión manual solicitada desde CalibrationScreen');
+                    debugPrint(
+                        '[BLE_MANUAL] Reconexión manual solicitada desde CalibrationScreen');
                     await _weightService.attemptManualReconnect();
                   }
                 : null,
-            child: Icon(icon, color: color, size: 20),
+            child: Container(
+              width: AppConstants.minTapTargetSize,
+              height: AppConstants.minTapTargetSize,
+              padding: EdgeInsets.all(AppConstants.tapTargetPadding),
+              child: Icon(
+                icon,
+                color: color,
+                size: AppConstants.bluetoothIconSize,
+              ),
+            ),
           ),
         );
       },
@@ -450,44 +461,47 @@ class _CalibrationScreenState extends State<CalibrationScreen> {
     return RepaintBoundary(
       key: _screenshotKey,
       child: Scaffold(
-        appBar: AppBar(
-          title: const Text(
-            'CALIBRACIÓN', // F-16: MAYÚSCULAS
-            style: TextStyle(
-              fontWeight: FontWeight.bold,
-              letterSpacing: 1.5,
-              fontSize: 14,
-            ),
-          ),
-          backgroundColor: Colors.blueGrey[800], // F-16: azul militar
-          actions: <Widget>[
-            // ETAPA F2.2: Indicador de estado Bluetooth compacto
-            Center(
-              child: Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 8.0),
-                child: _buildBluetoothStatusBadge(),
+        appBar: PreferredSize(
+          preferredSize: const Size.fromHeight(50.0),
+          child: AppBar(
+            title: const Text(
+              'CALIBRACIÓN', // F-16: MAYÚSCULAS
+              style: TextStyle(
+                fontWeight: FontWeight.bold,
+                letterSpacing: 1.5,
+                fontSize: 14,
               ),
             ),
-            IconButton(
-              icon: Icon(Icons.camera_alt, color: Colors.grey[400]), // F-16
-              onPressed: () async {
-                final Uint8List? bytes =
-                    await ScreenshotHelper.captureWidget(_screenshotKey);
-                if (bytes != null) {
-                  await ScreenshotHelper.sharePng(bytes,
-                      filenamePrefix: 'calibracion');
-                }
-                if (!mounted) return;
-                if (!context.mounted) return;
-                ScaffoldMessenger.of(context).showSnackBar(
-                  SnackBar(
-                    content: const Text('Error al capturar pantalla'),
-                    backgroundColor: Colors.red[800], // F-16
-                  ),
-                );
-              },
-            ),
-          ],
+            backgroundColor: Colors.blueGrey[800], // F-16: azul militar
+            actions: <Widget>[
+              // ETAPA F2.2: Indicador de estado Bluetooth compacto
+              Center(
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 8.0),
+                  child: _buildBluetoothStatusBadge(),
+                ),
+              ),
+              IconButton(
+                icon: Icon(Icons.camera_alt, color: Colors.grey[400]), // F-16
+                onPressed: () async {
+                  final Uint8List? bytes =
+                      await ScreenshotHelper.captureWidget(_screenshotKey);
+                  if (bytes != null) {
+                    await ScreenshotHelper.sharePng(bytes,
+                        filenamePrefix: 'calibracion');
+                  }
+                  if (!mounted) return;
+                  if (!context.mounted) return;
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(
+                      content: const Text('Error al capturar pantalla'),
+                      backgroundColor: Colors.red[800], // F-16
+                    ),
+                  );
+                },
+              ),
+            ],
+          ),
         ),
         body: Container(
           color: Colors.grey[900], // F-16: fondo oscuro

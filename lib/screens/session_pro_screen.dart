@@ -9,6 +9,7 @@ import '../services/session_history_service.dart';
 import '../services/weight_service.dart';
 import '../services/bluetooth_service.dart';
 import '../utils/screenshot_helper.dart';
+import '../utils/constants.dart';
 import '../widgets/session_weight_row.dart';
 
 /// Pantalla profesional/industrial para gestionar sesiones de pesaje
@@ -141,7 +142,7 @@ class _SessionProScreenState extends State<SessionProScreen> {
         backgroundColor: Colors.black, // F-16: fondo negro puro
         resizeToAvoidBottomInset: false,
         appBar: PreferredSize(
-          preferredSize: const Size.fromHeight(40.0),
+          preferredSize: const Size.fromHeight(50.0),
           child: AppBar(
             backgroundColor: Colors.blueGrey[800], // F-16: azul militar AppBar
             title: Text(
@@ -326,7 +327,16 @@ class _SessionProScreenState extends State<SessionProScreen> {
                     await _weightService.attemptManualReconnect();
                   }
                 : null,
-            child: Icon(icon, color: color, size: 18),
+            child: Container(
+              width: AppConstants.minTapTargetSize,
+              height: AppConstants.minTapTargetSize,
+              padding: EdgeInsets.all(AppConstants.tapTargetPadding),
+              child: Icon(
+                icon,
+                color: color,
+                size: AppConstants.bluetoothIconSize,
+              ),
+            ),
           ),
         );
       },
