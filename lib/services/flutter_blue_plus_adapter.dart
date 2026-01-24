@@ -165,4 +165,18 @@ class FlutterBluePlusAdapter implements BluetoothAdapter {
   void dispose() {
     _bluetoothStateController.close();
   }
+  // 🔧 FIX PARA: lib/services/flutter_blue_plus_adapter.dart
+// Agregar este método a la clase FlutterBluePlusAdapter
+
+  /// Detiene el escaneo de dispositivos BLE activo
+  @override
+  Future<void> stopScan() async {
+    try {
+      await fbp.FlutterBluePlus.stopScan();
+      print('[BLE] Scan detenido correctamente');
+    } catch (e) {
+      print('[BLE] Error al detener scan: $e');
+      // No lanzar error, solo registrar
+    }
+  }
 }

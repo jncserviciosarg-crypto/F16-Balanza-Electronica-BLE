@@ -39,6 +39,11 @@ class WeightService {
   double _divisionMinima = 0.01;
   double _zeroOffsetKg = 0.0; // Cero operativo (no persistente)
 
+  // Bug #3: Detector de timeout ADC (sin datos por 3s)
+  DateTime? _lastAdcTimestamp;
+  static const Duration _adcTimeout = Duration(seconds: 3);
+  Timer? _timeoutCheckTimer;
+
   final Queue<int> _rawBuffer = Queue<int>();
   final Queue<double> _trimmedBuffer = Queue<double>();
   final Queue<double> _windowBuffer = Queue<double>();
@@ -86,18 +91,43 @@ class WeightService {
 
     _adcSubscription = _bluetoothService.adcStream.listen((int adc) {
       _ultimoADC = adc;
+      _lastAdcTimestamp =
+          DateTime.now(); // Bug #3: Marcar timestamp de último ADC
     });
 
     _processingTimer = Timer.periodic(
       Duration(milliseconds: _updateIntervalMs),
       (Timer timer) => _processData(),
     );
+
+    // Bug #3: Iniciar timer de verificación de timeout
+    _timeoutCheckTimer?.cancel();
+    _timeoutCheckTimer = Timer.periodic(Duration(seconds: 1), (_) {
+      if (!_isAdcActive) {
+        // Emitir estado con ADC inactivo (sin peso, solo advertencia)
+        _weightStateController.add(WeightState(
+          adcRaw: 0,
+          adcFiltered: 0.0,
+          peso: 0.0,
+          estable: false,
+          overload: false,
+          adcActive: false, // Marcar como inactivo
+        ));
+      }
+    });
   }
 
   void stop() {
     _isRunning = false;
     _adcSubscription?.cancel();
     _processingTimer?.cancel();
+    _timeoutCheckTimer?.cancel(); // Bug #3: Cancelar timer de timeout
+  }
+
+  // Bug #3: Getter para verificar si ADC está activo (sin timeout)
+  bool get _isAdcActive {
+    if (_lastAdcTimestamp == null) return false;
+    return DateTime.now().difference(_lastAdcTimestamp!) < _adcTimeout;
   }
 
   void dispose() {
@@ -167,6 +197,7 @@ class WeightService {
       peso: pesoFinal, // visual final después de corrección y cuantización
       estable: estable,
       overload: overload,
+      adcActive: _isAdcActive, // Bug #3: Incluir estado de actividad ADC
     );
 
     _weightStateController.add(_currentState);

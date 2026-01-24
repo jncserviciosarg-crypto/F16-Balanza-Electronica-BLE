@@ -33,7 +33,7 @@ class _BluetoothScreenState extends State<BluetoothScreen> {
     _checkBluetoothAndLoadDevices();
     // Recuperar nombre del dispositivo conectado si existe
     _updateConnectedDeviceName();
-    
+
     ValueListenableBuilder<BluetoothStatus>(
       valueListenable: _bluetoothService.statusNotifier,
       builder: (context, status, _) {
@@ -149,6 +149,53 @@ class _BluetoothScreenState extends State<BluetoothScreen> {
     await _scanForBLEDevices();
   }
 
+  /// Bug #2: Método para refrescar dispositivos (cancela scan previo, limpia lista, verifica permisos)
+  Future<void> _refreshDevices() async {
+    try {
+      // 1. Detener scan previo si existe
+      await _bleAdapter.stopScan();
+
+      // 2. Limpiar lista actual
+      setState(() {
+        _devices.clear();
+        _isScanning = true;
+      });
+
+      // 3. Re-verificar permisos (importante en Android 12+)
+      final hasPermissions =
+          await _bluetoothService.checkAndRequestPermissions();
+      if (!hasPermissions) {
+        if (mounted) {
+          setState(() => _isScanning = false);
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: const Text('Permisos de Bluetooth denegados'),
+              backgroundColor: Colors.red[800],
+            ),
+          );
+        }
+        return;
+      }
+
+      // 4. Iniciar nuevo scan limpio
+      await _scanForBLEDevices();
+
+      if (mounted) {
+        setState(() => _isScanning = false);
+      }
+    } catch (e) {
+      if (mounted) {
+        setState(() => _isScanning = false);
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Error al refrescar dispositivos: $e'),
+            backgroundColor: Colors.red[800],
+          ),
+        );
+      }
+    }
+  }
+
   /// Helper para mostrar el estado de conexión en texto
   String _getStatusText(BluetoothStatus status) {
     switch (status) {
@@ -174,7 +221,8 @@ class _BluetoothScreenState extends State<BluetoothScreen> {
           setState(() {
             _connectedDeviceName = deviceName;
           });
-          debugPrint('[BLE_SCREEN] Nombre recuperado del servicio: $deviceName');
+          debugPrint(
+              '[BLE_SCREEN] Nombre recuperado del servicio: $deviceName');
         }
       }
     }
@@ -269,8 +317,8 @@ class _BluetoothScreenState extends State<BluetoothScreen> {
           actions: <Widget>[
             IconButton(
               icon: Icon(Icons.refresh, color: Colors.grey[400]), // F-16
-              onPressed:
-                  _bluetoothService.isConnected ? null : _loadPairedDevices,
+              // Bug #2: Usar _refreshDevices() en lugar de _loadPairedDevices
+              onPressed: _refreshDevices,
             ),
             IconButton(
               icon: Icon(Icons.camera_alt, color: Colors.grey[400]), // F-16
@@ -397,136 +445,181 @@ class _BluetoothScreenState extends State<BluetoothScreen> {
                   },
                 ),
               ),
-              // F-16: LISTA DE DISPOSITIVOS
+              // F-16: LISTA DE DISPOSITIVOS (Bug #1: ValueListenableBuilder para refresco de UI)
               Expanded(
-                child: _isScanning
-                    ? Center(
-                        child: CircularProgressIndicator(
-                          color: Colors.cyan[700], // F-16
-                        ),
-                      )
-                    : _devices.isEmpty
+                child: ValueListenableBuilder<BluetoothStatus>(
+                  valueListenable: _bluetoothService.statusNotifier,
+                  builder: (BuildContext context, BluetoothStatus status,
+                      Widget? child) {
+                    return _isScanning
                         ? Center(
-                            child: Column(
-                              mainAxisAlignment: MainAxisAlignment.center,
-                              children: <Widget>[
-                                Icon(
-                                  Icons.bluetooth_searching,
-                                  size: 64,
-                                  color: Colors.grey[600], // F-16
-                                ),
-                                const SizedBox(height: 10),
-                                Text(
-                                  'NO HAY DISPOSITIVOS EMPAREJADOS',
-                                  style: TextStyle(
-                                    fontSize: 12,
-                                    color: Colors.grey[500], // F-16
-                                    letterSpacing: 1.2,
-                                  ),
-                                ),
-                                const SizedBox(height: 16),
-                                ElevatedButton.icon(
-                                  onPressed: _loadPairedDevices,
-                                  icon: const Icon(Icons.refresh, size: 18),
-                                  label: const Text(
-                                    'ACTUALIZAR',
-                                    style: TextStyle(
-                                      letterSpacing: 1.2,
-                                      fontWeight: FontWeight.bold,
-                                    ),
-                                  ),
-                                  style: ElevatedButton.styleFrom(
-                                    backgroundColor:
-                                        Colors.blueGrey[700], // F-16
-                                    foregroundColor: Colors.white,
-                                    shape: RoundedRectangleBorder(
-                                      borderRadius: BorderRadius.circular(4),
-                                    ),
-                                  ),
-                                ),
-                              ],
+                            child: CircularProgressIndicator(
+                              color: Colors.cyan[700], // F-16
                             ),
                           )
-                        : ListView.builder(
-                            padding: const EdgeInsets.all(12),
-                            itemCount: _devices.length,
-                            itemBuilder: (BuildContext context, int index) {
-                              fbp.ScanResult scanResult = _devices[index];
-                              final String deviceName =
-                                  scanResult.device.platformName;
-                              final String deviceAddress =
-                                  scanResult.device.remoteId.str;
-                              bool isCurrentDevice =
-                                  _bluetoothService.isConnected &&
-                                      _connectedDeviceName == deviceName;
-                              bool isBalanza =
-                                  deviceName.contains('BalanzaJ&M_BLE');
+                        : _devices.isEmpty
+                            ? Center(
+                                child: Column(
+                                  mainAxisAlignment: MainAxisAlignment.center,
+                                  children: <Widget>[
+                                    Icon(
+                                      Icons.bluetooth_searching,
+                                      size: 64,
+                                      color: Colors.grey[600], // F-16
+                                    ),
+                                    const SizedBox(height: 10),
+                                    Text(
+                                      'NO HAY DISPOSITIVOS EMPAREJADOS',
+                                      style: TextStyle(
+                                        fontSize: 12,
+                                        color: Colors.grey[500], // F-16
+                                        letterSpacing: 1.2,
+                                      ),
+                                    ),
+                                    const SizedBox(height: 16),
+                                    ElevatedButton.icon(
+                                      onPressed: _loadPairedDevices,
+                                      icon: const Icon(Icons.refresh, size: 18),
+                                      label: const Text(
+                                        'ACTUALIZAR',
+                                        style: TextStyle(
+                                          letterSpacing: 1.2,
+                                          fontWeight: FontWeight.bold,
+                                        ),
+                                      ),
+                                      style: ElevatedButton.styleFrom(
+                                        backgroundColor:
+                                            Colors.blueGrey[700], // F-16
+                                        foregroundColor: Colors.white,
+                                        shape: RoundedRectangleBorder(
+                                          borderRadius:
+                                              BorderRadius.circular(4),
+                                        ),
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              )
+                            : ListView.builder(
+                                padding: const EdgeInsets.all(12),
+                                itemCount: _devices.length,
+                                itemBuilder: (BuildContext context, int index) {
+                                  fbp.ScanResult scanResult = _devices[index];
+                                  final String deviceName =
+                                      scanResult.device.platformName;
+                                  final String deviceAddress =
+                                      scanResult.device.remoteId.str;
+                                  final String deviceMacAddress =
+                                      scanResult.device.remoteId.str;
 
-                              return Card(
-                                margin: const EdgeInsets.only(bottom: 8),
-                                color: Colors.grey[850], // F-16: uniforme
-                                shape: RoundedRectangleBorder(
-                                  borderRadius: BorderRadius.circular(6),
-                                  side: BorderSide(
-                                    color: isCurrentDevice
-                                        ? Colors.green[
-                                            700]! // F-16: borde verde si conectado
-                                        : isBalanza
-                                            ? Colors.cyan[
-                                                700]! // F-16: borde cian para BalanzaJ&M_BLE
-                                            : Colors.blueGrey[700]!,
-                                    width: isCurrentDevice || isBalanza ? 2 : 1,
-                                  ),
-                                ),
-                                child: ListTile(
-                                  leading: Icon(
-                                    Icons.bluetooth,
-                                    color: isCurrentDevice
-                                        ? Colors
-                                            .green[700] // F-16: verde militar
-                                        : isBalanza
-                                            ? Colors.cyan[700]
-                                            : Colors.blueGrey[
-                                                600], // F-16: azul grisáceo
-                                    size: 32,
-                                  ),
-                                  title: Text(
-                                    deviceName,
-                                    style: TextStyle(
-                                      fontWeight: FontWeight.bold,
-                                      color: isCurrentDevice
-                                          ? Colors.green[700]
-                                          : isBalanza
-                                              ? Colors.cyan[700]
-                                              : Colors.white,
-                                      letterSpacing: 0.5,
-                                      fontSize: 14,
+                                  // Verificar si este dispositivo es el conectado actualmente
+                                  final bool isThisDeviceConnected = status ==
+                                          BluetoothStatus.connected &&
+                                      _bluetoothService.connectedDeviceName ==
+                                          deviceName;
+
+                                  bool isBalanza =
+                                      deviceName.contains('BalanzaJ&M_BLE');
+
+                                  // Colorear según estado
+                                  Color? tileColor;
+                                  if (isThisDeviceConnected) {
+                                    tileColor = Colors.green
+                                        .withOpacity(0.3); // Verde si conectado
+                                  } else if (scanResult.device.bondState ==
+                                      fbp.BluetoothBondState.bonded) {
+                                    tileColor = Colors.cyan.withOpacity(
+                                        0.2); // Turquesa si emparejado
+                                  }
+
+                                  return Card(
+                                    margin: const EdgeInsets.only(bottom: 8),
+                                    color: tileColor ??
+                                        Colors.grey[850], // F-16: uniforme
+                                    shape: RoundedRectangleBorder(
+                                      borderRadius: BorderRadius.circular(6),
+                                      side: BorderSide(
+                                        color: isThisDeviceConnected
+                                            ? Colors.green[
+                                                700]! // F-16: borde verde si conectado
+                                            : isBalanza
+                                                ? Colors.cyan[
+                                                    700]! // F-16: borde cian para BalanzaJ&M_BLE
+                                                : Colors.blueGrey[700]!,
+                                        width:
+                                            isThisDeviceConnected || isBalanza
+                                                ? 2
+                                                : 1,
+                                      ),
                                     ),
-                                  ),
-                                  subtitle: Text(
-                                    deviceAddress,
-                                    style: TextStyle(
-                                      color: Colors.grey[500], // F-16
-                                      fontFamily: 'monospace',
-                                      fontSize: 12,
+                                    child: ListTile(
+                                      leading: Icon(
+                                        Icons.bluetooth,
+                                        color: isThisDeviceConnected
+                                            ? Colors.green[
+                                                700] // F-16: verde militar
+                                            : isBalanza
+                                                ? Colors.cyan[700]
+                                                : Colors.blueGrey[
+                                                    600], // F-16: azul grisáceo
+                                        size: 32,
+                                      ),
+                                      title: Text(
+                                        deviceName,
+                                        style: TextStyle(
+                                          fontWeight: FontWeight.bold,
+                                          color: isThisDeviceConnected
+                                              ? Colors.green[700]
+                                              : isBalanza
+                                                  ? Colors.cyan[700]
+                                                  : Colors.white,
+                                          letterSpacing: 0.5,
+                                          fontSize: 14,
+                                        ),
+                                      ),
+                                      subtitle: Text(
+                                        deviceAddress,
+                                        style: TextStyle(
+                                          color: Colors.grey[500], // F-16
+                                          fontFamily: 'monospace',
+                                          fontSize: 12,
+                                        ),
+                                      ),
+                                      trailing: isThisDeviceConnected
+                                          ? ElevatedButton(
+                                              onPressed: _disconnect,
+                                              style: ElevatedButton.styleFrom(
+                                                backgroundColor:
+                                                    Colors.red[800],
+                                                foregroundColor: Colors.white,
+                                                padding:
+                                                    const EdgeInsets.symmetric(
+                                                  horizontal: 12,
+                                                  vertical: 8,
+                                                ),
+                                              ),
+                                              child: const Text(
+                                                'Desconectar',
+                                                style: TextStyle(
+                                                  fontSize: 11,
+                                                  fontWeight: FontWeight.bold,
+                                                ),
+                                              ),
+                                            )
+                                          : Icon(
+                                              Icons.arrow_forward_ios,
+                                              color: Colors.grey[600],
+                                              size: 18,
+                                            ),
+                                      onTap: isThisDeviceConnected
+                                          ? null
+                                          : () => _connectToDevice(scanResult),
                                     ),
-                                  ),
-                                  trailing: Icon(
-                                    isCurrentDevice
-                                        ? Icons.check_circle
-                                        : Icons.arrow_forward_ios,
-                                    color: isCurrentDevice
-                                        ? Colors.green[700]
-                                        : Colors.grey[600],
-                                    size: isCurrentDevice ? 24 : 18,
-                                  ),
-                                  onTap: _bluetoothService.isConnected
-                                      ? null
-                                      : () => _connectToDevice(scanResult),
-                                ),
+                                  );
+                                },
                               );
-                            },
-                          ),
+                  },
+                ),
               ),
             ],
           ),

@@ -360,6 +360,37 @@ class _SessionProScreenState extends State<SessionProScreen> {
   // 1️⃣ DISPLAY PESO F-16 RESPONSIVE
   // ═══════════════════════════════════════════════════════════════════
   Widget _buildDisplayPesoCompacto({bool isMobile = false}) {
+    // Bug #3: Verificar estado de conexión antes de mostrar peso
+    final btStatus = _weightService.bluetoothStatus;
+
+    if (btStatus != BluetoothStatus.connected) {
+      return Container(
+        margin: const EdgeInsets.all(4),
+        padding: const EdgeInsets.all(12),
+        decoration: BoxDecoration(
+          color: Colors.red.withOpacity(0.2),
+          border: Border.all(color: Colors.red, width: 2),
+          borderRadius: BorderRadius.circular(4),
+        ),
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(Icons.warning, color: Colors.red, size: 32),
+            const SizedBox(width: 12),
+            Text(
+              'SIN CONEXIÓN - Sesión pausada',
+              style: TextStyle(
+                color: Colors.red,
+                fontSize: isMobile ? 14 : 18,
+                fontWeight: FontWeight.bold,
+                letterSpacing: 1,
+              ),
+            ),
+          ],
+        ),
+      );
+    }
+
     // F-16: tamaños responsivos
     final double fontSize = isMobile ? 60.0 : 100.0;
     final double labelSize = isMobile ? 14.0 : 18.0;
@@ -480,7 +511,10 @@ class _SessionProScreenState extends State<SessionProScreen> {
   // 2️⃣ BOTONES F-16 RESPONSIVE
   // ═══════════════════════════════════════════════════════════════════
   Widget _buildBotonAgregarVertical({bool isMobile = false}) {
-    final bool canAdd = _session.pesadas.length < _maxPesadas;
+    // Bug #3: No permitir agregar si no hay conexión
+    final btStatus = _weightService.bluetoothStatus;
+    final bool canAdd = _session.pesadas.length < _maxPesadas &&
+        btStatus == BluetoothStatus.connected;
 
     // Color que cambia con el progreso
     final Color baseColor = Colors.blueGrey[700]!;

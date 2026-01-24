@@ -194,6 +194,81 @@ class _HomeScreenState extends State<HomeScreen>
 
   // Eliminada lógica clásica de acumulación (historial simple) al usar solo sesiones industriales
 
+  // Bug #3: Widget para mostrar alerta de conexión perdida
+  Widget _buildConnectionLostWidget(String mensaje) {
+    return Container(
+      padding: const EdgeInsets.all(24),
+      margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+      decoration: BoxDecoration(
+        color: Colors.red.withOpacity(0.15),
+        border: Border.all(color: Colors.red, width: 3),
+        borderRadius: BorderRadius.circular(16),
+      ),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(
+            Icons.bluetooth_disabled,
+            size: 64,
+            color: Colors.red,
+          ),
+          const SizedBox(height: 12),
+          Text(
+            mensaje,
+            style: const TextStyle(
+              fontSize: 28,
+              fontWeight: FontWeight.bold,
+              color: Colors.red,
+              letterSpacing: 1.2,
+            ),
+            textAlign: TextAlign.center,
+          ),
+          const SizedBox(height: 8),
+          Text(
+            'Verifique la conexión Bluetooth',
+            style: TextStyle(
+              fontSize: 16,
+              color: Colors.red.withOpacity(0.8),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  // Bug #3: Método que verifica estado de conexión y ADC antes de mostrar peso
+  Widget _buildWeightDisplayOrAlert() {
+    final btStatus = _weightService.bluetoothStatus;
+
+    // PRIORIDAD 1: Verificar conexión Bluetooth
+    if (btStatus != BluetoothStatus.connected) {
+      return _buildConnectionLostWidget('BLUETOOTH DESCONECTADO');
+    }
+
+    // PRIORIDAD 2: Verificar si llegan datos ADC (según último estado conocido)
+    if (!_uiEstable && _peso == 0.0) {
+      // Si el peso es 0 y no está estable, podría ser timeout
+      return _buildConnectionLostWidget('SIN DATOS ADC');
+    }
+
+    // PRIORIDAD 3: Mostrar peso normal
+    return WeightDisplay(
+      peso: _peso,
+      estable: _uiEstable,
+      adc: adcRaw,
+      tara: _tara,
+      divisionMinima: _divisionMinima,
+      overload: _overload,
+      unidad: _unidad,
+    );
+  }
+
+  // ═══════════════════════════════════════════════════════════════════
+  // REFACTORIZACIÓN UI: Responsive + Tema F-16 Minimalista
+  // ═══════════════════════════════════════════════════════════════════
+
+  // Eliminada lógica clásica de acumulación (historial simple) al usar solo sesiones industriales
+
   // ═══════════════════════════════════════════════════════════════════
   // REFACTORIZACIÓN UI: Responsive + Tema F-16 Minimalista
   // ═══════════════════════════════════════════════════════════════════
@@ -218,19 +293,11 @@ class _HomeScreenState extends State<HomeScreen>
                     padding: EdgeInsets.all(isMobile ? 8.0 : 12.0),
                     child: Column(
                       children: <Widget>[
-                        // Display de peso (mantiene lógica intacta)
+                        // Bug #3: Verificar estado de conexión y ADC antes de mostrar peso
                         Flexible(
                           flex: 6,
                           child: Center(
-                            child: WeightDisplay(
-                              peso: _peso,
-                              estable: _uiEstable,
-                              adc: adcRaw,
-                              tara: _tara,
-                              divisionMinima: _divisionMinima,
-                              overload: _overload,
-                              unidad: _unidad,
-                            ),
+                            child: _buildWeightDisplayOrAlert(),
                           ),
                         ),
                         SizedBox(height: isMobile ? 4 : 8),
@@ -326,7 +393,8 @@ class _HomeScreenState extends State<HomeScreen>
           child: GestureDetector(
             onTap: isClickable
                 ? () async {
-                    debugPrint('[UI] Tap en indicador BLE - intentando reconectar');
+                    debugPrint(
+                        '[UI] Tap en indicador BLE - intentando reconectar');
                     await _weightService.attemptManualReconnect();
                   }
                 : null,

@@ -4,6 +4,7 @@ class WeightState {
   final double peso;
   final bool estable;
   final bool overload;
+  final bool adcActive; // Bug #3: Propiedad para detectar timeout ADC
 
   WeightState({
     required this.adcRaw,
@@ -11,6 +12,7 @@ class WeightState {
     required this.peso,
     required this.estable,
     this.overload = false,
+    this.adcActive = true, // Por defecto activo
   });
 
   factory WeightState.initial() {
@@ -20,6 +22,7 @@ class WeightState {
       peso: 0.0,
       estable: false,
       overload: false,
+      adcActive: true,
     );
   }
 
@@ -29,6 +32,7 @@ class WeightState {
     double? peso,
     bool? estable,
     bool? overload,
+    bool? adcActive,
   }) {
     return WeightState(
       adcRaw: adcRaw ?? this.adcRaw,
@@ -36,6 +40,7 @@ class WeightState {
       peso: peso ?? this.peso,
       estable: estable ?? this.estable,
       overload: overload ?? this.overload,
+      adcActive: adcActive ?? this.adcActive,
     );
   }
 }
