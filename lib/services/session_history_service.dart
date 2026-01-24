@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'dart:io';
 import 'package:f16_balanza_electronica/models/session_weight.dart';
 import 'package:flutter/foundation.dart';
 import 'package:shared_preferences/shared_preferences.dart';
