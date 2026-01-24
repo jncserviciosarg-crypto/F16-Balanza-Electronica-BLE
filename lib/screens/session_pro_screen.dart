@@ -11,6 +11,7 @@ import '../services/bluetooth_service.dart';
 import '../utils/screenshot_helper.dart';
 import '../utils/constants.dart';
 import '../widgets/session_weight_row.dart';
+import '../widgets/bluetooth_status_badge.dart';
 
 /// Pantalla profesional/industrial para gestionar sesiones de pesaje
 /// Lee peso de la UI (NO del weight_service), 100% independiente
@@ -158,7 +159,9 @@ class _SessionProScreenState extends State<SessionProScreen> {
               Center(
                 child: Padding(
                   padding: const EdgeInsets.symmetric(horizontal: 4.0),
-                  child: _buildBluetoothStatusBadge(),
+                  child: BluetoothStatusBadge(
+                    screenName: 'SessionProScreen',
+                  ),
                 ),
               ),
               IconButton(
@@ -286,74 +289,6 @@ class _SessionProScreenState extends State<SessionProScreen> {
         ),
       ),
     );
-  }
-
-  /// ETAPA F2.2: Indicador visual compacto de estado Bluetooth en AppBar
-  Widget _buildBluetoothStatusBadge() {
-    return ValueListenableBuilder<BluetoothStatus>(
-      valueListenable: _weightService.bluetoothStatusNotifier,
-      builder: (BuildContext context, BluetoothStatus status, Widget? child) {
-        IconData icon;
-        Color color;
-
-        switch (status) {
-          case BluetoothStatus.connected:
-            icon = Icons.bluetooth_connected;
-            color = Colors.green;
-            break;
-          case BluetoothStatus.connecting:
-            icon = Icons.bluetooth_searching;
-            color = Colors.orange;
-            break;
-          case BluetoothStatus.error:
-            icon = Icons.bluetooth_disabled;
-            color = Colors.red;
-            break;
-          case BluetoothStatus.disconnected:
-            icon = Icons.bluetooth_disabled;
-            color = Colors.grey;
-        }
-
-        bool isClickable = status == BluetoothStatus.disconnected ||
-            status == BluetoothStatus.error;
-
-        return Tooltip(
-          message: _getBluetoothStatusText(status),
-          child: GestureDetector(
-            onTap: isClickable
-                ? () async {
-                    debugPrint(
-                        '[BLE_MANUAL] Reconexión manual solicitada desde SessionProScreen');
-                    await _weightService.attemptManualReconnect();
-                  }
-                : null,
-            child: Container(
-              width: AppConstants.minTapTargetSize,
-              height: AppConstants.minTapTargetSize,
-              padding: EdgeInsets.all(AppConstants.tapTargetPadding),
-              child: Icon(
-                icon,
-                color: color,
-                size: AppConstants.bluetoothIconSize,
-              ),
-            ),
-          ),
-        );
-      },
-    );
-  }
-
-  String _getBluetoothStatusText(BluetoothStatus status) {
-    switch (status) {
-      case BluetoothStatus.connected:
-        return 'Bluetooth: Conectado';
-      case BluetoothStatus.connecting:
-        return 'Bluetooth: Conectando...';
-      case BluetoothStatus.error:
-        return 'Bluetooth: Error';
-      case BluetoothStatus.disconnected:
-        return 'Bluetooth: Desconectado';
-    }
   }
 
   // ═══════════════════════════════════════════════════════════════════
