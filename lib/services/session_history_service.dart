@@ -1,16 +1,12 @@
 import 'dart:convert';
-import 'dart:io';
 import 'package:f16_balanza_electronica/models/session_weight.dart';
 import 'package:flutter/foundation.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:excel/excel.dart';
 import 'package:path_provider/path_provider.dart';
 import '../models/session_model.dart';
-// Imports requeridos (sin printing ni google_fonts)
-import 'package:pdf/widgets.dart' as pw;
-import 'package:pdf/pdf.dart';
-import 'package:share_plus/share_plus.dart';
 import 'weight_service.dart';
+import 'pdf_export_service.dart';
 import '../utils/weight_formatter.dart' as weight_formatter;
 
 /// Servicio para gestionar sesiones de pesaje (Carga/Descarga)
@@ -28,6 +24,9 @@ class SessionHistoryService {
 
   // WeightService para acceder a configuración de división mínima
   final WeightService _weightService = WeightService();
+  
+  // PdfExportService para delegación de exportación PDF
+  final PdfExportService _pdfExportService = PdfExportService();
 
   // ==== Formateo dinámico de pesos según división mínima ====
   String _formatPeso(double value) {
@@ -820,235 +819,23 @@ class SessionHistoryService {
     }
   }
 
-  /// Genera un PDF de texto plano de una sesión y devuelve la ruta del archivo.
-  /// Requiere que en pubspec.yaml estén añadidas las dependencias:
-  ///   pdf: ^3.10.0 (o similar)
-  ///   printing: ^5.11.0 (opcional si se quiere imprimir/preview)
-  /// No modifica ni interactúa con otras funciones existentes.
+  /// Genera un PDF de una sesión y devuelve la ruta del archivo
+  /// 
+  /// Este método delega la generación del PDF a [PdfExportService].
+  /// 
+  /// Parámetros:
+  /// - [session]: La sesión a exportar
+  /// 
+  /// Retorna la ruta completa del archivo PDF generado
   Future<String> exportSessionToPdf(SessionModel session) async {
-    final String tipo = session.tipo;
-    final String id = session.id;
-    final DateTime inicio = session.fechaInicio;
-    final String patente = session.patente ?? '-';
-    final String producto = session.producto ?? '-';
-    final String chofer = session.chofer ?? '-';
-    final String notasValor = session.notas ??
-        '-'; // Retenido aunque no se imprime según formato exacto
-    _padLine('Notas',
-        notasValor); // Uso intencional para evitar warning sin alterar salida
-
-    final String fechaInicioStr =
-        '${inicio.day.toString().padLeft(2, '0')}/${inicio.month.toString().padLeft(2, '0')}/${inicio.year}';
-    final String horaInicioStr =
-        '${inicio.hour.toString().padLeft(2, '0')}:${inicio.minute.toString().padLeft(2, '0')}:${inicio.second.toString().padLeft(2, '0')}';
-
-    final String pesoTotalPesadasStr = _formatPeso(session.pesoTotal);
-    final String cantidadPesadasStr = session.cantidadPesadas.toString();
-
-    const int labelWidth = 13; // Longitud de 'Fecha Inicio:'
-//    String line(String label, String value) =>
-//        label.padRight(labelWidth) + ' ' + value;
-    String line(String label, String value) =>
-        '${label.padRight(labelWidth)} $value';
-
-    final StringBuffer buffer = StringBuffer();
-    buffer.writeln('SESIÓN DE PESAJE');
-    buffer.writeln('');
-    buffer.writeln(line('Tipo:', tipo));
-    buffer.writeln(line('ID:', id));
-    buffer.writeln(line('Fecha Inicio:', fechaInicioStr));
-    buffer.writeln(line('Hora Inicio:', horaInicioStr));
-    buffer.writeln(line('Patente:', patente));
-    buffer.writeln(line('Producto:', producto));
-    buffer.writeln(line('Chofer:', chofer));
-    buffer.writeln(line('Notas:', notasValor));
-    buffer.writeln('');
-    buffer.writeln(line('Peso Total Pesadas:', '$pesoTotalPesadasStr kg'));
-    buffer.writeln(line('Cantidad Pesadas:', cantidadPesadasStr));
-    buffer.writeln('');
-    buffer.writeln('Tabla:');
-    buffer.writeln('Nº | Fecha | Hora | Peso (kg)');
-    for (int i = 0; i < session.pesadas.length; i++) {
-      final SessionWeight p = session.pesadas[i];
-      final String fecha =
-          '${p.fechaHora.day.toString().padLeft(2, '0')}/${p.fechaHora.month.toString().padLeft(2, '0')}/${p.fechaHora.year}';
-      final String hora =
-          '${p.fechaHora.hour.toString().padLeft(2, '0')}:${p.fechaHora.minute.toString().padLeft(2, '0')}:${p.fechaHora.second.toString().padLeft(2, '0')}';
-      final String pesoStr = _formatPeso(p.peso);
-      final String numeroCol = (i + 1).toString().padRight(2);
-      final String fechaCol = fecha.padRight(10);
-      final String horaCol = hora.padRight(8);
-      final String pesoCol = pesoStr.padLeft(8);
-      buffer.writeln('$numeroCol | $fechaCol | $horaCol | $pesoCol');
-    }
-    final pw.Document doc = pw.Document();
-    doc.addPage(
-      pw.Page(
-        pageFormat: PdfPageFormat.a4,
-        margin: const pw.EdgeInsets.all(24),
-        build: (pw.Context context) {
-          return pw.Column(
-            crossAxisAlignment: pw.CrossAxisAlignment.start,
-            children: <pw.Widget>[
-              // TÍTULO
-              pw.Text(
-                'SESIÓN DE PESAJE',
-                style: pw.TextStyle(
-                  fontSize: 22,
-                  fontWeight: pw.FontWeight.bold,
-                ),
-              ),
-
-              pw.SizedBox(height: 20),
-
-              // BLOQUE DE DATOS
-              pw.Container(
-                padding: const pw.EdgeInsets.all(12),
-                decoration: pw.BoxDecoration(
-                  border: pw.Border.all(color: PdfColors.grey700),
-                  borderRadius: pw.BorderRadius.circular(6),
-                ),
-                child: pw.Column(
-                  crossAxisAlignment: pw.CrossAxisAlignment.start,
-                  children: <pw.Widget>[
-                    pw.Text('Tipo: $tipo'),
-                    pw.Text('ID: $id'),
-                    pw.Text('Fecha Inicio: $fechaInicioStr'),
-                    pw.Text('Hora Inicio: $horaInicioStr'),
-                    pw.Text('Patente: $patente'),
-                    pw.Text('Producto: $producto'),
-                    pw.Text('Chofer: $chofer'),
-                    pw.Text('Notas: $notasValor'),
-                  ],
-                ),
-              ),
-
-              pw.SizedBox(height: 20),
-
-              // RESUMEN
-              pw.Text(
-                'Resumen',
-                style:
-                    pw.TextStyle(fontSize: 16, fontWeight: pw.FontWeight.bold),
-              ),
-              pw.SizedBox(height: 8),
-
-              pw.Row(
-                mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
-                children: <pw.Widget>[
-                  pw.Text('Total Pesadas: $pesoTotalPesadasStr kg'),
-                  pw.Text('Cantidad: $cantidadPesadasStr'),
-                ],
-              ),
-
-              pw.SizedBox(height: 20),
-
-              // TABLA
-              pw.Text(
-                'Detalle de Pesadas',
-                style:
-                    pw.TextStyle(fontSize: 16, fontWeight: pw.FontWeight.bold),
-              ),
-              pw.SizedBox(height: 10),
-
-              pw.Table(
-                border: pw.TableBorder.all(color: PdfColors.grey),
-                columnWidths: <int, pw.TableColumnWidth>{
-                  0: const pw.FixedColumnWidth(40),
-                  1: const pw.FixedColumnWidth(80),
-                  2: const pw.FixedColumnWidth(80),
-                  3: const pw.FlexColumnWidth(),
-                },
-                children: <pw.TableRow>[
-                  // ENCABEZADO DE TABLA
-                  pw.TableRow(
-                    decoration: const pw.BoxDecoration(color: PdfColors.grey300),
-                    children: <pw.Widget>[
-                      pw.Padding(
-                        padding: const pw.EdgeInsets.all(6),
-                        child: pw.Text('Nº',
-                            style:
-                                pw.TextStyle(fontWeight: pw.FontWeight.bold)),
-                      ),
-                      pw.Padding(
-                        padding: const pw.EdgeInsets.all(6),
-                        child: pw.Text('Fecha'),
-                      ),
-                      pw.Padding(
-                        padding: const pw.EdgeInsets.all(6),
-                        child: pw.Text('Hora'),
-                      ),
-                      pw.Padding(
-                        padding: const pw.EdgeInsets.all(6),
-                        child: pw.Align(
-                          alignment: pw.Alignment.centerRight,
-                          child: pw.Text('Peso (kg)'),
-                        ),
-                      ),
-                    ],
-                  ),
-
-                  // FILAS
-                  ...session.pesadas.asMap().entries.map((MapEntry<int, SessionWeight> entry) {
-                    final int i = entry.key;
-                    final SessionWeight p = entry.value;
-
-                    final String fecha =
-                        '${p.fechaHora.day.toString().padLeft(2, '0')}/${p.fechaHora.month.toString().padLeft(2, '0')}/${p.fechaHora.year}';
-                    final String hora =
-                        '${p.fechaHora.hour.toString().padLeft(2, '0')}:${p.fechaHora.minute.toString().padLeft(2, '0')}:${p.fechaHora.second.toString().padLeft(2, '0')}';
-                    final String pesoStr = _formatPeso(p.peso);
-
-                    return pw.TableRow(
-                      children: <pw.Widget>[
-                        pw.Padding(
-                          padding: const pw.EdgeInsets.all(6),
-                          child: pw.Text('${i + 1}'),
-                        ),
-                        pw.Padding(
-                          padding: const pw.EdgeInsets.all(6),
-                          child: pw.Text(fecha),
-                        ),
-                        pw.Padding(
-                          padding: const pw.EdgeInsets.all(6),
-                          child: pw.Text(hora),
-                        ),
-                        pw.Padding(
-                          padding: const pw.EdgeInsets.all(6),
-                          child: pw.Align(
-                            alignment: pw.Alignment.centerRight,
-                            child: pw.Text(pesoStr),
-                          ),
-                        ),
-                      ],
-                    );
-                  }) //.toList(),
-                ],
-              ),
-            ],
-          );
-        },
-      ),
-    );
-
-    final Directory directory = await getTemporaryDirectory();
-    // El ID ya incluye timestamp, no necesitamos dateStamp adicional
-    final String filePath = '${directory.path}/session_$id.pdf';
-    final File file = File(filePath);
-    final Uint8List bytes = await doc.save();
-    await file.writeAsBytes(bytes, flush: true);
-    return filePath;
+    return _pdfExportService.exportSessionToPdf(session);
   }
 
+  /// Comparte un archivo PDF usando el sistema de compartir nativo
+  /// 
+  /// Parámetros:
+  /// - [path]: Ruta completa del archivo PDF a compartir
   Future<void> sharePdf(String path) async {
-    await Share.shareXFiles(<XFile>[XFile(path)], text: 'Sesión de pesaje');
-  }
-
-  // Helper interno para alinear etiqueta y valor (sin afectar otras funciones)
-  String _padLine(String label, String value) {
-    // ancho fijo para etiqueta (18) luego valor
-    const int labelWidth = 18;
-    final String paddedLabel = label.padRight(labelWidth);
-    return '$paddedLabel$value';
+    return _pdfExportService.sharePdf(path);
   }
 }
