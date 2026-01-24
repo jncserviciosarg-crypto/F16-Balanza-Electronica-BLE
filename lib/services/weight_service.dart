@@ -65,6 +65,15 @@ class WeightService {
 
   bool _isRunning = false;
 
+  /// Inicializa el servicio de peso cargando configuraciones persistidas
+  /// 
+  /// Carga desde [PersistenceService]:
+  /// - Modelo de calibración ([CalibrationModel])
+  /// - Parámetros de filtros ([FilterParams])
+  /// - Configuración de celda de carga ([LoadCellConfig])
+  /// 
+  /// Aplica las configuraciones cargadas a las variables internas.
+  /// Debe llamarse antes de [start].
   Future<void> initialize() async {
     _calibration = await _persistenceService.loadCalibration();
     _filterParams = await _persistenceService.loadFilters();
@@ -117,6 +126,14 @@ class WeightService {
     });
   }
 
+  /// Detiene el procesamiento de datos de peso
+  /// 
+  /// Cancela:
+  /// - Suscripción al stream ADC
+  /// - Timer de procesamiento
+  /// - Timer de verificación de timeout
+  /// 
+  /// Deja de emitir estados de peso. Puede reiniciarse con [start].
   void stop() {
     _isRunning = false;
     _adcSubscription?.cancel();
@@ -130,6 +147,10 @@ class WeightService {
     return DateTime.now().difference(_lastAdcTimestamp!) < _adcTimeout;
   }
 
+  /// Libera todos los recursos del servicio de peso
+  /// 
+  /// Llama a [stop] y cierra todos los streams ([weightStateStream], [configStream]).
+  /// Debe llamarse al finalizar el uso del servicio.
   void dispose() {
     stop();
     _weightStateController.close();
@@ -264,12 +285,25 @@ class WeightService {
     return span < threshold;
   }
 
+  /// Establece un nuevo modelo de calibración
+  /// 
+  /// Guarda la calibración en [PersistenceService] y reinicia los filtros.
+  /// Parámetros del modelo afectan la conversión ADC → Peso.
   void setCalibration(CalibrationModel calibration) {
     _calibration = calibration;
     _persistenceService.saveCalibration(calibration);
     _resetFilters();
   }
 
+  /// Establece nuevos parámetros de filtros
+  /// 
+  /// Actualiza:
+  /// - Tamaño de lista trim ([muestras])
+  /// - Tamaño de ventana ([ventana])
+  /// - Alpha del filtro EMA ([emaAlpha])
+  /// - Intervalo de actualización en ms ([updateIntervalMs])
+  /// 
+  /// Guarda en [PersistenceService], reinicia timer y resetea filtros.
   void setFilterParams(FilterParams params) {
     _filterParams = params;
     _trimListSize = params.muestras;
@@ -283,6 +317,10 @@ class WeightService {
     _resetFilters();
   }
 
+  /// Establece nueva configuración de celda de carga
+  /// 
+  /// Actualiza configuración completa (capacidad, sensibilidad, división mínima, unidad).
+  /// Guarda en [PersistenceService] y emite por [configStream].
   void setLoadCellConfig(LoadCellConfig config) {
     _loadCellConfig = config;
     _divisionMinima = config.divisionMinima;
@@ -304,10 +342,19 @@ class WeightService {
     _tareKg = tare;
   }
 
+  /// Toma el peso actual como nueva tara
+  /// 
+  /// Suma el peso actual más la tara existente para crear una nueva tara acumulativa.
+  /// La tara se aplica en los cálculos de peso subsiguientes.
   void takeTareNow() {
     _tareKg = _currentState.peso + _tareKg;
   }
 
+  /// Establece el cero de calibración en el valor ADC actual
+  /// 
+  /// Toma el valor EMA actual como nuevo offset de calibración.
+  /// Persiste la calibración actualizada y reinicia filtros.
+  /// Solo funciona si el filtro EMA está inicializado.
   void setZeroNow() {
     if (_emaInitialized) {
       _calibration = _calibration.copyWith(offset: _emaValue);
