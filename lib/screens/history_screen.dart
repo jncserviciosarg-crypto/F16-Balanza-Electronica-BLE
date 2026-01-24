@@ -7,6 +7,7 @@ import '../models/session_model.dart';
 import '../services/session_history_service.dart';
 import '../services/weight_service.dart';
 import '../utils/screenshot_helper.dart';
+import '../utils/weight_formatter.dart' as weight_formatter;
 
 class HistoryScreen extends StatefulWidget {
   const HistoryScreen({super.key});
@@ -31,20 +32,9 @@ class _HistoryScreenState extends State<HistoryScreen> {
   }
 
   // ==== Formateo dinámico según división mínima ====
-  int _decimalsForDivision(double division) {
-    if (division >= 1) return 0;
-    // Representar con precisión y eliminar ceros a la derecha
-    String s = division.toStringAsFixed(6); // hasta 6 decimales
-    if (!s.contains('.')) return 0;
-    String frac = s.split('.')[1];
-    frac = frac.replaceAll(RegExp(r'0+$'), '');
-    return frac.length;
-  }
-
   String _formatWeight(double value) {
     double division = _weightService.loadCellConfig.divisionMinima;
-    int dec = _decimalsForDivision(division);
-    return value.toStringAsFixed(dec);
+    return weight_formatter.formatWeight(value, division);
   }
 
   Future<void> _loadSessions() async {

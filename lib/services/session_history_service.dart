@@ -11,6 +11,7 @@ import 'package:pdf/widgets.dart' as pw;
 import 'package:pdf/pdf.dart';
 import 'package:share_plus/share_plus.dart';
 import 'weight_service.dart';
+import '../utils/weight_formatter.dart' as weight_formatter;
 
 /// Servicio para gestionar sesiones de pesaje (Carga/Descarga)
 /// Usa persistencia local separada para no interferir con history_service existente
@@ -29,20 +30,9 @@ class SessionHistoryService {
   final WeightService _weightService = WeightService();
 
   // ==== Formateo dinámico de pesos según división mínima ====
-  int _decimalsForDivision(double division) {
-    if (division >= 1) return 0;
-    // Representar con precisión y eliminar ceros a la derecha
-    String s = division.toStringAsFixed(6); // hasta 6 decimales
-    if (!s.contains('.')) return 0;
-    String frac = s.split('.')[1];
-    frac = frac.replaceAll(RegExp(r'0+$'), '');
-    return frac.length;
-  }
-
   String _formatPeso(double value) {
     double division = _weightService.loadCellConfig.divisionMinima;
-    int dec = _decimalsForDivision(division);
-    return value.toStringAsFixed(dec);
+    return weight_formatter.formatWeight(value, division);
   }
 
   /// Obtiene todas las sesiones guardadas

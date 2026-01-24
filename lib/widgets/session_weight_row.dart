@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../models/session_weight.dart';
 import '../services/weight_service.dart';
+import '../utils/weight_formatter.dart' as weight_formatter;
 
 /// Widget para mostrar una fila de pesada en formato tabla industrial
 class SessionWeightRow extends StatelessWidget {
@@ -111,19 +112,6 @@ class SessionWeightRow extends StatelessWidget {
 
   String _formatWeight(double value) {
     double division = _weightService.loadCellConfig.divisionMinima;
-    int decimals;
-    if (division >= 1) {
-      decimals = 0;
-    } else {
-      String s = division.toStringAsFixed(6);
-      if (!s.contains('.')) {
-        decimals = 0;
-      } else {
-        String frac = s.split('.')[1];
-        frac = frac.replaceAll(RegExp(r'0+$'), '');
-        decimals = frac.length;
-      }
-    }
-    return value.toStringAsFixed(decimals);
+    return weight_formatter.formatWeight(value, division);
   }
 }
