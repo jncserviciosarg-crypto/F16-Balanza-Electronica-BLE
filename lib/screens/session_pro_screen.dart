@@ -53,17 +53,17 @@ class _SessionProScreenState extends State<SessionProScreen> {
   /// Inicializamos a pesoActual en initState para que parcial arranque en 0.
   double _taraParcial = 0.0;
 
-  // ---- Estado para botón "TARA PARCIAL (3s)" ----
+  // ---- Estado para botón "TARA PARCIAL (1s)" ----
   Timer? _taraProgressTimer;
   bool _taraHoldInProgress = false;
   double _taraHoldProgress = 0.0; // 0.0 -> 1.0 progreso visual
   static const int _taraHoldMillis = 1000;
 
-  // === CONTROL DE HOLD-TO-ADD PESADA (3 SEGUNDOS) ===
+  // === CONTROL DE HOLD-TO-ADD PESADA (0.5 SEGUNDOS) ===
   Timer? _addPesadaProgressTimer;
   bool _addPesadaHoldInProgress = false;
   double _addPesadaHoldProgress = 0.0;
-  static const int _addPesadaHoldMillis = 2000;
+  static const int _addPesadaHoldMillis = 500;
 
   // Propiedad calculada para peso parcial:
   // - Si es 'carga': parcial = peso actual - taraParcial (kg añadidos)
@@ -724,7 +724,7 @@ class _SessionProScreenState extends State<SessionProScreen> {
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
         content: Text(
-          'Cancelado - Debe mantener ${timeInSeconds.toStringAsFixed(1)}s de 3.0s',
+          'Cancelado - Debe mantener ${timeInSeconds.toStringAsFixed(1)}s de 1s',
         ),
         duration: const Duration(seconds: 1),
         backgroundColor: Colors.orange,
