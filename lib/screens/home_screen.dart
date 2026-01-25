@@ -46,6 +46,8 @@ class _HomeScreenState extends State<HomeScreen>
   static const int _stableDelayMs =
       600; // ms que debe estar quieto para ser estable
 
+  DateTime? _lastDataTimestamp;  // Timestamp de última recepción de datos ADC
+
   bool _overload = false;
   // Timer para pulsación larga del botón TARA
   Timer? _taraResetTimer;
@@ -68,6 +70,7 @@ class _HomeScreenState extends State<HomeScreen>
         _weightService.weightStateStream.listen((WeightState state) {
       if (mounted) {
         setState(() {
+          _lastDataTimestamp = DateTime.now();  // Actualizar timestamp en cada dato recibido
           _peso = state.peso;
           adcRaw = state.adcRaw;
 
@@ -245,10 +248,12 @@ class _HomeScreenState extends State<HomeScreen>
       return _buildConnectionLostWidget('BLUETOOTH DESCONECTADO');
     }
 
-    // PRIORIDAD 2: Verificar si llegan datos ADC (según último estado conocido)
-    if (!_uiEstable && _peso == 0.0) {
-      // Si el peso es 0 y no está estable, podría ser timeout
-      return _buildConnectionLostWidget('SIN DATOS ADC');
+    // PRIORIDAD 2: Verificar timeout real de datos ADC
+    if (_lastDataTimestamp != null) {
+      final Duration timeSinceLastData = DateTime.now().difference(_lastDataTimestamp!);
+      if (timeSinceLastData.inSeconds > 3) {  // 3 segundos sin datos = pérdida real
+        return _buildConnectionLostWidget('SIN DATOS ADC');
+      }
     }
 
     // PRIORIDAD 3: Mostrar peso normal
