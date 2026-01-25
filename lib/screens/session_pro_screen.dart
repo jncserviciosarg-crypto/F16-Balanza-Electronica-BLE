@@ -57,13 +57,13 @@ class _SessionProScreenState extends State<SessionProScreen> {
   Timer? _taraProgressTimer;
   bool _taraHoldInProgress = false;
   double _taraHoldProgress = 0.0; // 0.0 -> 1.0 progreso visual
-  static const int _taraHoldMillis = 3000;
+  static const int _taraHoldMillis = 1000;
 
   // === CONTROL DE HOLD-TO-ADD PESADA (3 SEGUNDOS) ===
   Timer? _addPesadaProgressTimer;
   bool _addPesadaHoldInProgress = false;
   double _addPesadaHoldProgress = 0.0;
-  static const int _addPesadaHoldMillis = 3000;
+  static const int _addPesadaHoldMillis = 2000;
 
   // Propiedad calculada para peso parcial:
   // - Si es 'carga': parcial = peso actual - taraParcial (kg añadidos)
@@ -518,7 +518,7 @@ class _SessionProScreenState extends State<SessionProScreen> {
                     ),
                     const SizedBox(height: 2),
                     Text(
-                      canAdd ? 'AGREGAR\nPESADA\n(3S)' : 'LÍMITE\nALCANZADO',
+                      canAdd ? 'AGREGAR\nPESADA\n(1S)' : 'LÍMITE\nALCANZADO',
                       textAlign: TextAlign.center,
                       style: TextStyle(
                         fontSize: fontSize,
@@ -614,7 +614,7 @@ class _SessionProScreenState extends State<SessionProScreen> {
                     ),
                     const SizedBox(height: 2),
                     Text(
-                      'TARA PARCIAL\n(3S)', // F-16: MAYÚSCULAS
+                      'TARA PARCIAL\n(2S)', // F-16: MAYÚSCULAS
                       textAlign: TextAlign.center,
                       style: TextStyle(
                         fontSize: fontSize,
