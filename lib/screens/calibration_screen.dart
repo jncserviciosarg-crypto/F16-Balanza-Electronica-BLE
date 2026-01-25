@@ -8,6 +8,7 @@ import '../services/bluetooth_service.dart';
 import '../models/load_cell_config.dart';
 import '../services/auth_service.dart';
 import '../widgets/password_dialog.dart';
+import '../widgets/bluetooth_status_badge.dart';
 import '../utils/screenshot_helper.dart';
 import '../utils/constants.dart';
 
@@ -387,74 +388,6 @@ class _CalibrationScreenState extends State<CalibrationScreen> {
     );
   }
 
-  /// ETAPA F2.2: Indicador visual compacto de estado Bluetooth en AppBar
-  Widget _buildBluetoothStatusBadge() {
-    return ValueListenableBuilder<BluetoothStatus>(
-      valueListenable: _weightService.bluetoothStatusNotifier,
-      builder: (BuildContext context, BluetoothStatus status, Widget? child) {
-        IconData icon;
-        Color color;
-
-        switch (status) {
-          case BluetoothStatus.connected:
-            icon = Icons.bluetooth_connected;
-            color = Colors.green;
-            break;
-          case BluetoothStatus.connecting:
-            icon = Icons.bluetooth_searching;
-            color = Colors.orange;
-            break;
-          case BluetoothStatus.error:
-            icon = Icons.bluetooth_disabled;
-            color = Colors.red;
-            break;
-          case BluetoothStatus.disconnected:
-            icon = Icons.bluetooth_disabled;
-            color = Colors.grey;
-        }
-
-        bool isClickable = status == BluetoothStatus.disconnected ||
-            status == BluetoothStatus.error;
-
-        return Tooltip(
-          message: _getBluetoothStatusText(status),
-          child: GestureDetector(
-            onTap: isClickable
-                ? () async {
-                    debugPrint(
-                        '[BLE_MANUAL] Reconexión manual solicitada desde CalibrationScreen');
-                    await _weightService.attemptManualReconnect();
-                  }
-                : null,
-            child: Container(
-              width: AppConstants.minTapTargetSize,
-              height: AppConstants.minTapTargetSize,
-              padding: EdgeInsets.all(AppConstants.tapTargetPadding),
-              child: Icon(
-                icon,
-                color: color,
-                size: AppConstants.bluetoothIconSize,
-              ),
-            ),
-          ),
-        );
-      },
-    );
-  }
-
-  String _getBluetoothStatusText(BluetoothStatus status) {
-    switch (status) {
-      case BluetoothStatus.connected:
-        return 'Bluetooth: Conectado';
-      case BluetoothStatus.connecting:
-        return 'Bluetooth: Conectando...';
-      case BluetoothStatus.error:
-        return 'Bluetooth: Error';
-      case BluetoothStatus.disconnected:
-        return 'Bluetooth: Desconectado';
-    }
-  }
-
   // F-16: BUILD METHOD REFACTORIZADO
   @override
   Widget build(BuildContext context) {
@@ -479,7 +412,9 @@ class _CalibrationScreenState extends State<CalibrationScreen> {
               Center(
                 child: Padding(
                   padding: const EdgeInsets.symmetric(horizontal: 8.0),
-                  child: _buildBluetoothStatusBadge(),
+                  child: BluetoothStatusBadge(
+                    screenName: 'CalibrationScreen',
+                  ),
                 ),
               ),
               IconButton(

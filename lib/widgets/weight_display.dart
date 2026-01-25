@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'dart:math' as math;
+import '../utils/weight_formatter.dart' as weight_formatter;
 
 class WeightDisplay extends StatefulWidget {
   final double peso;
@@ -46,23 +46,9 @@ class _WeightDisplayState extends State<WeightDisplay>
     super.dispose();
   }
 
-  int _decimalsFromDivision(double division) {
-    if (division <= 0) return 2;
-    if (division >= 1) return 0;
-    const int maxDecimals = 6;
-    double eps = 1e-9;
-    for (int d = 0; d <= maxDecimals; d++) {
-      double scaled = division * math.pow(10, d + 1);
-      if ((scaled - scaled.round()).abs() < eps) {
-        return d + 1;
-      }
-    }
-    return maxDecimals;
-  }
-
   @override
   Widget build(BuildContext context) {
-    final int decimals = _decimalsFromDivision(widget.divisionMinima);
+    final int decimals = weight_formatter.decimalsFromDivision(widget.divisionMinima);
 
     final String displayPeso = decimals == 0
         ? widget.peso.round().toString()

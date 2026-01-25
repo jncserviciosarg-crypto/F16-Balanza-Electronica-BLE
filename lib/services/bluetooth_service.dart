@@ -144,7 +144,10 @@ class BluetoothService {
     }
   }
 
-  // Obtener dispositivos emparejados
+  /// Obtiene la lista de dispositivos Bluetooth emparejados (bonded)
+  /// 
+  /// Retorna una lista de [BluetoothDevice] previamente emparejados con el dispositivo.
+  /// En caso de error, retorna una lista vacía.
   Future<List<BluetoothDevice>> getPairedDevices() async {
     try {
       final List<BluetoothDevice> devices = await _adapter.getBondedDevices();
@@ -155,7 +158,9 @@ class BluetoothService {
     }
   }
 
-  // Verificar si Bluetooth está habilitado
+  /// Verifica si el adaptador Bluetooth del dispositivo está habilitado
+  /// 
+  /// Retorna `true` si Bluetooth está habilitado, `false` en caso contrario o error.
   Future<bool?> isBluetoothEnabled() async {
     try {
       return await _adapter.isBluetoothEnabled();
@@ -165,7 +170,10 @@ class BluetoothService {
     }
   }
 
-  // Solicitar habilitar Bluetooth
+  /// Solicita al usuario habilitar el Bluetooth del dispositivo
+  /// 
+  /// Muestra un diálogo del sistema para que el usuario habilite Bluetooth.
+  /// Retorna `true` si el usuario acepta, `false` si rechaza o hay error.
   Future<bool?> requestEnable() async {
     try {
       return await _adapter.requestEnable();
@@ -175,7 +183,20 @@ class BluetoothService {
     }
   }
 
-  // Conectar a dispositivo usando ScanResult
+  /// Conecta a un dispositivo Bluetooth BLE
+  /// 
+  /// Establece conexión con el dispositivo especificado en [scanResult].
+  /// Si ya existe una conexión activa, primero desconecta.
+  /// 
+  /// Proceso:
+  /// 1. Desconecta si hay conexión previa
+  /// 2. Cambia estado a [BluetoothStatus.connecting]
+  /// 3. Conecta al dispositivo
+  /// 4. Descubre servicios y características
+  /// 5. Suscribe a notificaciones de la característica BLE
+  /// 6. Cambia estado a [BluetoothStatus.connected]
+  /// 
+  /// Retorna `true` si la conexión fue exitosa, `false` en caso contrario.
   Future<bool> connect(fbp.ScanResult scanResult) async {
     try {
       if (status != BluetoothStatus.disconnected) {
@@ -471,7 +492,15 @@ class BluetoothService {
     debugPrint('[BLE_CLEANUP] Recursos BLE limpios, estado = disconnected');
   }
 
-  // Desconectar
+  /// Desconecta el dispositivo Bluetooth actual
+  /// 
+  /// Realiza una desconexión manual y limpia del dispositivo:
+  /// 1. Marca la desconexión como manual (no automática)
+  /// 2. Cancela reintentos de reconexión
+  /// 3. Desactiva notificaciones BLE
+  /// 4. Cierra la conexión física
+  /// 5. Limpia estado interno
+  /// 6. Cambia estado a [BluetoothStatus.disconnected]
   Future<void> disconnect() async {
     try {
       debugPrint('[BLE_DISCONNECT] Iniciando desconexión manual...');
@@ -512,7 +541,18 @@ class BluetoothService {
     }
   }
 
-  /// Intento manual de reconexión sin scan BLE
+  /// Intenta reconectar manualmente al último dispositivo conocido
+  /// 
+  /// Este método permite reconectar sin realizar un nuevo scan BLE,
+  /// usando la referencia al último dispositivo conectado.
+  /// 
+  /// Útil cuando:
+  /// - El usuario solicita reconexión desde la UI
+  /// - Se perdió la conexión temporalmente
+  /// - Se quiere evitar el proceso completo de scan
+  /// 
+  /// El método solo funciona si existe un [_lastDevice] guardado.
+  /// Cambia el estado a [BluetoothStatus.connecting] durante el proceso.
   /// Reutiliza el dispositivo _lastDevice si está disponible
   /// Útil para reconectar desde UI sin abrir pantalla Bluetooth
   /// Solo ejecuta si no hay un intento en progreso
@@ -618,7 +658,10 @@ class BluetoothService {
     }
   }
 
-  // Limpiar recursos
+  /// Libera todos los recursos del servicio Bluetooth
+  /// 
+  /// Cierra streams, cancela suscripciones y libera memoria.
+  /// Debe llamarse al finalizar el uso del servicio (ej: dispose de app).
   void dispose() {
     _reconnectAttempts = 0;
     _connectionStateSubscription?.cancel();
