@@ -1,68 +1,38 @@
+/// ETAPA 13.1 - Punto de Entrada de la Aplicación
+/// 
+/// Este archivo es el punto de entrada definitivo de la app Flutter.
+/// Su única responsabilidad es:
+/// 1. Inicializar Flutter
+/// 2. Configurar el sistema (orientación, UI)
+/// 3. Bootstrap del CORE (solo instanciación)
+/// 4. Lanzar el AppRoot
+/// 
+/// ⚠️ NO contiene lógica de negocio
+/// ⚠️ NO ejecuta procesos automáticamente
+/// ⚠️ Solo prepara el terreno
+
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'screens/home_screen.dart';
-import 'screens/f16_splash_screen.dart';
+import 'app/app_root.dart';
+import 'app/core_bootstrap.dart';
 
 void main() {
+  // Inicializar Flutter
   WidgetsFlutterBinding.ensureInitialized();
 
-  // Forzar orientación horizontal
+  // Configurar orientación horizontal (requerimiento industrial)
   SystemChrome.setPreferredOrientations(<DeviceOrientation>[
     DeviceOrientation.landscapeLeft,
     DeviceOrientation.landscapeRight,
   ]);
 
-  // Ocultar barra de estado
+  // Ocultar barra de estado (modo inmersivo)
   SystemChrome.setEnabledSystemUIMode(SystemUiMode.immersiveSticky);
 
-  runApp(const BalanzaApp());
-}
+  // Bootstrap del CORE (ETAPAS 1-12)
+  // ⚠️ Solo instancia servicios, NO los ejecuta
+  final coreBootstrap = CoreBootstrap.initialize();
 
-class BalanzaApp extends StatelessWidget {
-  const BalanzaApp({super.key});
-
-  @override
-  Widget build(BuildContext context) {
-    return MaterialApp(
-      title: 'F16 Balanza Electrónica',
-      debugShowCheckedModeBanner: false,
-      theme: ThemeData(
-        primarySwatch: Colors.blue,
-        brightness: Brightness.light,
-        useMaterial3: true,
-      ),
-      home: const AppInitializer(),
-    );
-  }
-}
-
-/// Widget inicial que muestra la pantalla F-16 BIT solo durante el arranque
-/// y luego delega a la pantalla principal (`HomeScreen`). Está diseñado para
-/// ser mínimo y no tocar ninguna otra lógica de la aplicación.
-class AppInitializer extends StatefulWidget {
-  const AppInitializer({super.key});
-
-  @override
-  State<AppInitializer> createState() => _AppInitializerState();
-}
-
-class _AppInitializerState extends State<AppInitializer> {
-  bool _showSplash = true;
-
-  void _onSplashComplete() {
-    if (!mounted) return;
-    setState(() {
-      _showSplash = false;
-    });
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    // Mientras _showSplash == true mostramos la pantalla BIT; al terminar
-    // mostramos la HomeScreen original. No se realiza navegación automática
-    // desde dentro del splash para mantener la separación de responsabilidades.
-    return _showSplash
-        ? F16SplashScreen(onComplete: _onSplashComplete)
-        : const HomeScreen();
-  }
+  // Lanzar la aplicación con el App Root
+  runApp(AppRoot(coreBootstrap: coreBootstrap));
 }
