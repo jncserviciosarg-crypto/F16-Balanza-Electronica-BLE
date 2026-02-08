@@ -10,7 +10,6 @@
 /// - Solo proporciona la estructura base de la app
 
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import 'core_bootstrap.dart';
 import '../screens/home_screen.dart';
 import '../screens/f16_splash_screen.dart';
