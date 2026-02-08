@@ -1,8 +1,8 @@
 # ETAPA 13.1 — App Shell & Bootstrap de la Aplicación
 
 **Fecha**: 8 de febrero de 2026  
-**Estado**: ✅ COMPLETADO  
-**Versión**: 1.0
+**Estado**: ✅ IMPLEMENTADO (Alcance Corregido)
+**Versión**: 2.0
 
 ---
 
@@ -10,29 +10,31 @@
 
 1. [Resumen Ejecutivo](#resumen-ejecutivo)
 2. [Contexto en el Plan Maestro](#contexto-en-el-plan-maestro)
-3. [Qué HACE esta Etapa](#qué-hace-esta-etapa)
-4. [Qué NO HACE esta Etapa](#qué-no-hace-esta-etapa)
-5. [Arquitectura Implementada](#arquitectura-implementada)
-6. [Diferencias Clave](#diferencias-clave)
-7. [Archivos Creados y Modificados](#archivos-creados-y-modificados)
-8. [Criterios de Aceptación](#criterios-de-aceptación)
+3. [Qué es el CORE (ETAPAS 1-12)](#qué-es-el-core-etapas-1-12)
+4. [Qué HACE esta Etapa](#qué-hace-esta-etapa)
+5. [Qué NO HACE esta Etapa](#qué-no-hace-esta-etapa)
+6. [Arquitectura Implementada](#arquitectura-implementada)
+7. [Diferencias Clave](#diferencias-clave)
+8. [Archivos Creados y Modificados](#archivos-creados-y-modificados)
 9. [Próximos Pasos](#próximos-pasos)
 
 ---
 
 ## 🎯 Resumen Ejecutivo
 
-La **ETAPA 13.1** implementa la estructura base de la aplicación Flutter que actúa como **CONTENEDOR** del CORE ya implementado (servicios existentes). 
+La **ETAPA 13.1** implementa la estructura base (contenedor) de la aplicación Flutter que está **PREPARADA** para recibir el CORE cuando sea implementado en futuras etapas.
 
 ### Propósito
 
-> 🧱 "Dar un cuerpo a la app donde viva el cerebro ya construido, sin interferir con él"
+> 🧱 "Crear el contenedor vacío donde vivirá el CORE cuando sea construido"
 
-Esta etapa **NO** agrega comportamiento nuevo, **NO** modifica el pipeline lógico, **NO** ejecuta acciones reales. Su único propósito es proporcionar una estructura organizativa clara que separa:
-
-- **CORE** (lógica de negocio existente)
-- **App Shell** (contenedor Flutter)
-- **Bootstrap** (inicialización sin ejecución)
+Esta etapa:
+- ✅ Crea la estructura organizativa (`lib/app/`)
+- ✅ Prepara el bootstrap para recibir gestores del CORE
+- ✅ Mantiene la app funcional sin cambios de comportamiento
+- ❌ NO instancia servicios existentes (no son parte del CORE)
+- ❌ NO modifica configuración del sistema dentro del bootstrap
+- ❌ NO ejecuta ninguna lógica
 
 ---
 
@@ -40,24 +42,37 @@ Esta etapa **NO** agrega comportamiento nuevo, **NO** modifica el pipeline lógi
 
 Según PLAN_MAESTRO.md v1.3:
 
-- **CORE (ETAPAS 1–12)** → ✅ COMPLETO y CONGELADO
-- **ETAPA 13** → ❌ NO INICIADA (antes de esta etapa)
+- **CORE (ETAPAS 1–12)** → ⏳ PENDIENTE (gestores aún no implementados)
+- **ETAPA 13** → 🔄 EN PROGRESO
 - **ETAPA 13.1** → ✅ App Shell & Bootstrap (esta documentación)
 - **ETAPA 13.2** → ⏳ PENDIENTE (Simulación - futura)
 - **ETAPA 13.3** → ⏳ PENDIENTE (Hardware real - futura)
 
-### ¿Qué es el CORE?
+---
 
-El CORE se refiere a los servicios y gestores existentes implementados en etapas anteriores:
+## ❓ Qué es el CORE (ETAPAS 1-12)
 
-- `BluetoothService` - Gestión de conexiones Bluetooth
-- `WeightService` - Procesamiento de peso y filtrado
-- `PersistenceService` - Almacenamiento de configuración
-- `SessionHistoryService` - Gestión de sesiones de pesaje
-- `AuthService` - Autenticación
-- `PdfExportService` - Exportación de documentos
+El CORE se refiere EXCLUSIVAMENTE a los **gestores/managers** que implementan la lógica de negocio principal:
 
-Estos servicios implementan toda la lógica de validación, diagnóstico, reacciones, ejecución abstracta y auditoría del sistema.
+### Gestores del CORE
+1. **Validaciones** - Valida entradas y estados
+2. **Diagnóstico** - Detecta problemas y anomalías
+3. **Reacciones** - Define respuestas a eventos
+4. **Ejecución abstracta** - Orquesta el pipeline lógico
+5. **Auditoría** - Registra operaciones y eventos
+
+### ⚠️ QUÉ NO ES EL CORE
+
+Los siguientes servicios existentes **NO** son parte del CORE (ETAPAS 1-12):
+
+- ❌ `BluetoothService` - Capa de infraestructura
+- ❌ `WeightService` - Capa de aplicación
+- ❌ `PersistenceService` - Capa de infraestructura
+- ❌ `SessionHistoryService` - Capa de aplicación
+- ❌ `AuthService` - Capa de aplicación
+- ❌ `PdfExportService` - Capa de infraestructura
+
+Estos servicios son **implementaciones existentes** que serán **usadas** por el CORE, pero **NO son el CORE**.
 
 ---
 
@@ -71,132 +86,134 @@ Crea la carpeta `lib/app/` para el App Shell:
 lib/
 ├── app/                      # NUEVO: App Shell (ETAPA 13.1)
 │   ├── app_root.dart        # Widget raíz MaterialApp
-│   └── core_bootstrap.dart  # Bootstrap del CORE
-├── main.dart                 # MODIFICADO: Punto de entrada simplificado
-├── services/                 # EXISTENTE: CORE (ETAPAS 1-12)
+│   └── core_bootstrap.dart  # Bootstrap del CORE (contenedor vacío)
+├── main.dart                 # MODIFICADO: Punto de entrada neutral
+├── services/                 # EXISTENTE: Servicios de infraestructura
 ├── models/                   # EXISTENTE: Modelos de datos
 ├── screens/                  # EXISTENTE: Pantallas de UI
 └── ...
 ```
 
-### 2. main.dart Definitivo
+### 2. main.dart - Punto de Entrada Neutral
 
 **Responsabilidades**:
 - Inicializa Flutter (`WidgetsFlutterBinding.ensureInitialized()`)
-- Configura el sistema (orientación horizontal, UI inmersiva)
-- Ejecuta el bootstrap del CORE (solo instanciación)
+- Ejecuta el bootstrap del CORE (crea contenedor vacío)
 - Lanza el AppRoot
 
 **Lo que NO hace**:
+- ❌ No configura SystemChrome (eso está en AppRoot, código original)
 - ❌ No contiene lógica de negocio
-- ❌ No ejecuta procesos automáticamente
-- ❌ No dispara eventos
-- ❌ No simula escenarios
+- ❌ No instancia servicios
 
-### 3. AppRoot (lib/app/app_root.dart)
+```dart
+void main() {
+  WidgetsFlutterBinding.ensureInitialized();
+  final coreBootstrap = CoreBootstrap.initialize();
+  runApp(AppRoot(coreBootstrap: coreBootstrap));
+}
+```
 
-**Responsabilidades**:
-- Widget raíz que configura `MaterialApp`
-- Define theme básico (Material 3)
-- Define title de la aplicación
-- Mantiene referencia al CoreBootstrap (pero NO lo usa activamente)
-- Delega a la pantalla inicial existente (splash + home)
-
-**Lo que NO hace**:
-- ❌ No implementa navegación compleja
-- ❌ No define rutas dinámicas
-- ❌ No ejecuta flujos de usuario
-
-### 4. CoreBootstrap (lib/app/core_bootstrap.dart)
+### 3. CoreBootstrap - Contenedor Vacío del CORE
 
 **Responsabilidades**:
-- Crea instancias de los servicios singleton existentes
-- Almacena referencias para inyección de dependencias
-- Proporciona acceso centralizado al CORE
+- Provee estructura para recibir gestores del CORE
+- Está preparado para inyección de dependencias
+- NO instancia nada por ahora
 
-**Lo que NO hace**:
-- ❌ NO ejecuta métodos de negocio
-- ❌ NO dispara eventos
-- ❌ NO simula escenarios
-- ❌ NO inicializa procesos automáticos
-- ❌ Solo CREA REFERENCIAS
+**Gestores que recibirá (futuro)**:
+- Validaciones (cuando se implemente)
+- Diagnóstico (cuando se implemente)
+- Reacciones (cuando se implemente)
+- Ejecución abstracta (cuando se implemente)
+- Auditoría (cuando se implemente)
 
-> **Esto es CABLEADO (wiring), no USO.**
+```dart
+class CoreBootstrap {
+  // Aquí se agregarán referencias a los gestores del CORE
+  // cuando sean implementados
+  
+  CoreBootstrap._();
+  
+  static CoreBootstrap initialize() {
+    final bootstrap = CoreBootstrap._();
+    // El bootstrap está listo para recibir los gestores del CORE
+    // Por ahora, no hay gestores que instanciar
+    return bootstrap;
+  }
+}
+```
 
-### 5. Documentación
+### 4. AppRoot - Widget Raíz
 
-Crea `docs/arquitectura/ETAPA_13_1_APP_SHELL.md` (este archivo) que explica:
-- Qué hace ETAPA 13.1
-- Qué NO hace
-- Diferencias entre CORE, App Shell y Simulación futura
-- Por qué no se ejecuta nada en esta etapa
+**Responsabilidades**:
+- Configura MaterialApp con theme Material 3
+- Mantiene funcionalidad existente de la app (splash + home)
+- Mantiene configuración de SystemChrome del código original
+- Recibe CoreBootstrap pero NO lo usa activamente
+
+**Nota importante**: La configuración de SystemChrome (orientación, UI) proviene del **código original de la app**, NO es parte de ETAPA 13.1.
 
 ---
 
 ## ❌ Qué NO HACE esta Etapa
 
-Esta etapa **NO**:
+### Restricciones Cumplidas
 
-1. ❌ Crea validaciones nuevas
-2. ❌ Crea diagnósticos nuevos
-3. ❌ Ejecuta el pipeline de procesamiento
-4. ❌ Simula errores o escenarios
-5. ❌ Simula hardware (eso es ETAPA 13.2)
-6. ❌ Crea lógica condicional nueva
-7. ❌ Ejecuta reacciones
-8. ❌ Registra auditoría automáticamente
-9. ❌ Modifica código de ETAPAS 1–12
-10. ❌ Cambia contratos existentes
-11. ❌ Agrega dependencias nuevas
-12. ❌ Crea servicios nuevos
-13. ❌ Crea simuladores
-14. ❌ Adelanta ETAPA 13.2 o 13.3
+Esta implementación **NO** hace:
 
-### ⚠️ Regla Estricta
+1. ❌ NO instancia `BluetoothService`, `WeightService`, etc. (no son parte del CORE)
+2. ❌ NO crea validaciones nuevas
+3. ❌ NO crea diagnósticos nuevos
+4. ❌ NO ejecuta el pipeline
+5. ❌ NO simula errores o hardware
+6. ❌ NO crea lógica condicional nueva
+7. ❌ NO ejecuta reacciones
+8. ❌ NO registra auditoría automáticamente
+9. ❌ NO modifica comportamiento del sistema desde el bootstrap
+10. ❌ NO agrega dependencias
+11. ❌ NO adelanta ETAPA 13.2 o 13.3
 
-> Si algo "parece útil para que la app funcione mejor", **NO** se hace en esta etapa.
+### ⚠️ Correcciones Aplicadas
+
+Versión 2.0 corrige el alcance para:
+- ✅ NO instanciar servicios existentes en el bootstrap
+- ✅ NO modificar SystemChrome desde el bootstrap de ETAPA 13.1
+- ✅ Preparar contenedor vacío para gestores del CORE (aún no implementados)
 
 ---
 
 ## 🏗️ Arquitectura Implementada
 
-### Diagrama de Capas (Post-ETAPA 13.1)
+### Diagrama de Capas
 
 ```
 ┌─────────────────────────────────────────────────┐
-│              main.dart (Entry Point)             │
+│         main.dart (Entry Point - Neutral)        │
 │  - Inicializa Flutter                            │
-│  - Configura sistema                             │
-│  - Bootstrap CORE (sin ejecutar)                 │
+│  - Bootstrap CORE (contenedor vacío)             │
 └────────────────────┬────────────────────────────┘
                      │
                      ▼
 ┌─────────────────────────────────────────────────┐
-│         AppRoot (lib/app/app_root.dart)          │
+│       AppRoot (lib/app/app_root.dart)            │
 │  - MaterialApp                                   │
-│  - Theme básico                                  │
-│  - Pantalla inicial                              │
+│  - Theme Material 3                              │
+│  - Configuración SystemChrome (código original)  │
+│  - Splash + Home (funcionalidad existente)       │
 └────────────────────┬────────────────────────────┘
                      │
                      ▼
 ┌─────────────────────────────────────────────────┐
-│    CoreBootstrap (lib/app/core_bootstrap.dart)   │
-│  - Referencias a servicios CORE                  │
-│  - NO ejecuta lógica                             │
-│  - Solo wiring/cableado                          │
-└────────────────────┬────────────────────────────┘
-                     │
-                     ▼
-┌─────────────────────────────────────────────────┐
-│              CORE (ETAPAS 1-12)                  │
-│  - BluetoothService                              │
-│  - WeightService                                 │
-│  - PersistenceService                            │
-│  - SessionHistoryService                         │
-│  - AuthService                                   │
-│  - PdfExportService                              │
-│                                                   │
-│  ⚠️ CONGELADO - NO se modifica                   │
+│  CoreBootstrap (lib/app/core_bootstrap.dart)     │
+│  - Contenedor vacío para gestores del CORE      │
+│  - NO instancia servicios                        │
+│  - Preparado para recibir:                       │
+│    * Validaciones (futuro)                       │
+│    * Diagnóstico (futuro)                        │
+│    * Reacciones (futuro)                         │
+│    * Ejecución abstracta (futuro)                │
+│    * Auditoría (futuro)                          │
 └──────────────────────────────────────────────────┘
 ```
 
@@ -204,63 +221,38 @@ Esta etapa **NO**:
 
 ```
 1. main()
-   ↓
 2. WidgetsFlutterBinding.ensureInitialized()
-   ↓
-3. Configurar orientación + UI
-   ↓
-4. CoreBootstrap.initialize()
-   │  ↓
-   │  - BluetoothService() → obtiene singleton
-   │  - WeightService() → obtiene singleton
-   │  - PersistenceService() → obtiene singleton
-   │  - SessionHistoryService() → obtiene singleton
-   │  - AuthService() → obtiene singleton
-   │  - PdfExportService() → obtiene singleton
-   │  ↓
-   │  ⚠️ IMPORTANTE: Solo obtiene referencias
-   │     NO ejecuta métodos, NO dispara eventos
-   ↓
-5. runApp(AppRoot(coreBootstrap))
-   ↓
-6. AppRoot.build()
-   ↓
-7. MaterialApp → AppInitializer → Splash → HomeScreen
+3. CoreBootstrap.initialize() → crea contenedor vacío
+4. runApp(AppRoot(...))
+5. AppRoot inicializa SystemChrome (código original)
+6. MaterialApp
+7. AppInitializer
+8. F16SplashScreen
+9. HomeScreen
 ```
 
 ---
 
 ## 🔄 Diferencias Clave
 
-### CORE (ETAPAS 1–12) vs App Shell (ETAPA 13.1)
+### CORE (ETAPAS 1-12) vs Servicios Existentes
 
-| Aspecto | CORE (ETAPAS 1-12) | App Shell (ETAPA 13.1) |
-|---------|-------------------|----------------------|
-| **Propósito** | Lógica de negocio | Contenedor/estructura |
-| **Ubicación** | `lib/services/`, `lib/models/` | `lib/app/`, `lib/main.dart` |
-| **Responsabilidad** | Validación, procesamiento, persistencia | Inicialización, configuración UI |
-| **Estado** | ✅ Completo y congelado | ✅ Completo (esta etapa) |
-| **Modificable** | ❌ NO (está congelado) | ✅ SÍ (si es necesario) |
-| **Ejecuta lógica** | ✅ SÍ (cuando se invoca) | ❌ NO (solo prepara) |
+| Aspecto | CORE (ETAPAS 1-12) | Servicios Existentes |
+|---------|-------------------|---------------------|
+| **Qué son** | Gestores de lógica de negocio | Capa de infraestructura/aplicación |
+| **Componentes** | Validaciones, Diagnóstico, Reacciones, Ejecución, Auditoría | Bluetooth, Weight, Persistence, etc. |
+| **Estado** | ⏳ Pendiente (no implementados) | ✅ Implementados |
+| **Ubicación** | `lib/core/` (futuro) | `lib/services/` (existente) |
+| **Bootstrap** | ✅ Sí (cuando existan) | ❌ No (no son parte del CORE) |
 
-### App Shell (ETAPA 13.1) vs Simulación (ETAPA 13.2 - Futura)
+### App Shell (ETAPA 13.1) vs Simulación (ETAPA 13.2)
 
 | Aspecto | App Shell (13.1) | Simulación (13.2) |
 |---------|-----------------|------------------|
-| **Propósito** | Estructura base | Pruebas sin hardware |
-| **Ejecuta CORE** | ❌ NO | ✅ SÍ |
-| **Simula datos** | ❌ NO | ✅ SÍ |
-| **Interactúa con UI** | Mínimo (splash + home) | ✅ SÍ (completo) |
-| **Estado** | ✅ Completo | ⏳ Pendiente |
-
-### App Shell (ETAPA 13.1) vs Hardware Real (ETAPA 13.3 - Futura)
-
-| Aspecto | App Shell (13.1) | Hardware Real (13.3) |
-|---------|-----------------|---------------------|
-| **Propósito** | Estructura base | Operación en producción |
-| **Usa Bluetooth** | ❌ NO | ✅ SÍ |
-| **Datos reales** | ❌ NO | ✅ SÍ |
-| **Estado** | ✅ Completo | ⏳ Pendiente |
+| **Propósito** | Estructura contenedora | Pruebas sin hardware |
+| **CORE** | Contenedor vacío | Usará gestores del CORE |
+| **Servicios** | No los usa | Simulará servicios |
+| **Estado** | ✅ Implementado | ⏳ Pendiente |
 
 ---
 
@@ -268,32 +260,29 @@ Esta etapa **NO**:
 
 ### Archivos NUEVOS
 
-1. **lib/app/core_bootstrap.dart**
-   - Bootstrap del CORE
-   - Solo instanciación de servicios
-   - 60 líneas aprox.
+1. **lib/app/core_bootstrap.dart** (30 líneas aprox.)
+   - Contenedor vacío para gestores del CORE
+   - Preparado para recibir: Validaciones, Diagnóstico, Reacciones, Ejecución, Auditoría
+   - NO instancia servicios existentes
 
-2. **lib/app/app_root.dart**
+2. **lib/app/app_root.dart** (95 líneas aprox.)
    - Widget raíz MaterialApp
-   - Configuración de theme
-   - Pantalla inicial
-   - 70 líneas aprox.
+   - Mantiene configuración SystemChrome del código original
+   - Funcionalidad splash + home existente
 
 3. **docs/arquitectura/ETAPA_13_1_APP_SHELL.md**
-   - Este documento
-   - Documentación completa de la etapa
+   - Esta documentación (versión 2.0 corregida)
 
 ### Archivos MODIFICADOS
 
 1. **lib/main.dart**
-   - Simplificado a ~35 líneas
-   - Mueve lógica de widgets a `app_root.dart`
-   - Agrega bootstrap del CORE
-   - Mantiene configuración del sistema
+   - Simplificado a ~25 líneas
+   - Removida configuración SystemChrome (movida a AppRoot)
+   - Agregado bootstrap del CORE (contenedor vacío)
 
 ### Archivos NO MODIFICADOS
 
-- ✅ `lib/services/*` - CORE congelado
+- ✅ `lib/services/*` - Servicios existentes intactos
 - ✅ `lib/models/*` - Modelos existentes
 - ✅ `lib/screens/*` - Pantallas existentes
 - ✅ `lib/widgets/*` - Widgets existentes
@@ -301,142 +290,70 @@ Esta etapa **NO**:
 
 ---
 
-## ✅ Criterios de Aceptación
-
-### Completados
-
-- [x] La app compila correctamente
-- [x] Existe `main.dart` claro y simple
-- [x] Existe un App Root (`lib/app/app_root.dart`)
-- [x] El CORE se instancia pero NO se usa activamente
-- [x] No hay lógica nueva de negocio
-- [x] No se rompe arquitectura congelada (ETAPAS 1-12)
-- [x] Todo el código está en español
-- [x] Código mínimo y legible
-- [x] Documentación completa creada
-
-### Verificación
-
-1. **Compilación**:
-   ```bash
-   flutter pub get
-   flutter analyze
-   flutter build apk --debug
-   ```
-
-2. **Ejecución**:
-   - La app arranca correctamente
-   - Muestra splash screen
-   - Navega a HomeScreen
-   - No hay errores en consola
-
-3. **Arquitectura**:
-   - CORE (servicios) no modificado
-   - Separación clara entre App Shell y CORE
-   - Bootstrap solo instancia, no ejecuta
-
----
-
-## 🔚 Resultado Esperado
-
-Una aplicación Flutter que:
-
-- ✅ Arranca correctamente
-- ✅ Muestra pantalla base (splash + home)
-- ✅ Tiene el CORE inyectado pero "dormido"
-- ✅ Está lista para que ETAPA 13.2 agregue simulación
-- ✅ Mantiene toda la funcionalidad existente
-
-### Características Post-ETAPA 13.1
-
-- **Estructura organizada**: Separación clara entre app shell y CORE
-- **CORE intacto**: Servicios existentes no modificados
-- **Sin ejecución automática**: Bootstrap solo instancia, no ejecuta
-- **Documentación completa**: Este documento explica todo
-- **Preparada para simulación**: ETAPA 13.2 podrá agregar simuladores fácilmente
-
----
-
 ## 🚀 Próximos Pasos
+
+### Implementación de CORE (Etapas futuras)
+
+Cuando se implemente el CORE (ETAPAS 1-12), se agregarán los gestores:
+
+```dart
+class CoreBootstrap {
+  late final ValidacionesManager validaciones;
+  late final DiagnosticoManager diagnostico;
+  late final ReaccionesManager reacciones;
+  late final EjecucionManager ejecucion;
+  late final AuditoriaManager auditoria;
+  
+  static CoreBootstrap initialize() {
+    final bootstrap = CoreBootstrap._();
+    bootstrap.validaciones = ValidacionesManager();
+    bootstrap.diagnostico = DiagnosticoManager();
+    // ... etc
+    return bootstrap;
+  }
+}
+```
 
 ### ETAPA 13.2 - Simulación (PENDIENTE)
 
-Cuando se implemente ETAPA 13.2, podrá:
-
-1. Crear simuladores de hardware
-2. Generar datos de prueba
-3. Simular errores y escenarios
-4. Probar el CORE sin hardware real
-5. Usar `CoreBootstrap` para inyectar simuladores
+Cuando se implemente ETAPA 13.2:
+- Creará simuladores para probar el CORE
+- Generará datos de prueba
+- Simulará errores y escenarios
+- Usará los gestores del CORE
 
 ### ETAPA 13.3 - Hardware Real (PENDIENTE)
 
-Cuando se implemente ETAPA 13.3, podrá:
-
-1. Habilitar Bluetooth real
-2. Conectar a balanza física
-3. Procesar datos reales
-4. Operar en producción
-
----
-
-## 📝 Notas Importantes
-
-### ¿Por qué no se ejecuta nada en esta etapa?
-
-Porque el objetivo es **preparar** el terreno, no **usar** el terreno. Las razones son:
-
-1. **Separación de responsabilidades**: App Shell ≠ CORE
-2. **Arquitectura limpia**: Wiring sin ejecución
-3. **Preparación para simulación**: ETAPA 13.2 decidirá qué ejecutar
-4. **Mantenibilidad**: Código claro y enfocado
-
-### ¿Qué pasa con la funcionalidad existente?
-
-**Nada**. La aplicación mantiene toda su funcionalidad:
-
-- Splash screen funciona igual
-- HomeScreen funciona igual
-- Todos los servicios funcionan igual
-- Solo se reorganiza el código de inicialización
-
-### ¿Se puede usar la app ahora?
-
-**SÍ**. La aplicación es completamente funcional. Esta etapa solo reorganiza la estructura de inicialización sin cambiar el comportamiento.
+Cuando se implemente ETAPA 13.3:
+- Habilitará hardware real
+- Conectará a balanza física
+- Procesará datos reales
+- Ejecutará el CORE en producción
 
 ---
 
-## 🎓 Resumen para Desarrolladores
+## �� Resumen
 
-### Lo que debes saber
+### Estado Actual
 
-1. **CORE = Servicios existentes** (`lib/services/`)
-2. **App Shell = Estructura Flutter** (`lib/app/`, `lib/main.dart`)
-3. **Bootstrap = Wiring sin ejecución** (`CoreBootstrap`)
+- ✅ Estructura de App Shell creada (`lib/app/`)
+- ✅ Bootstrap del CORE preparado (contenedor vacío)
+- ✅ App funcional sin cambios de comportamiento
+- ✅ Documentación corregida (v2.0)
 
-### Lo que NO debes hacer
+### Alcance Corregido
 
-1. ❌ NO modificar servicios del CORE
-2. ❌ NO agregar lógica a `core_bootstrap.dart`
-3. ❌ NO ejecutar métodos en el bootstrap
-4. ❌ NO simular datos (eso es ETAPA 13.2)
+Esta etapa **prepara** el contenedor para el CORE, **NO** instancia servicios existentes.
 
-### Lo que SÍ puedes hacer
+> 📌 Prepara el terreno
+> 📌 No ejecuta nada
+> 📌 No instancia servicios
+> 📌 No modifica comportamiento del sistema desde el bootstrap
 
-1. ✅ Usar `CoreBootstrap` para obtener referencias a servicios
-2. ✅ Modificar `AppRoot` si es necesario
-3. ✅ Agregar configuración de UI
-4. ✅ Prepararte para ETAPA 13.2
+El CORE (gestores) será implementado en etapas futuras. Cuando exista, el bootstrap lo recibirá sin ejecutar ninguna lógica.
 
 ---
 
-**Fin de la Documentación ETAPA 13.1**
-
-📌 Esta etapa **prepara**  
-📌 No **ejecuta**  
-📌 No **decide**  
-📌 No **simula**
-
-**Estado**: ✅ COMPLETADO  
+**Versión**: 2.0 (Alcance Corregido)
 **Fecha**: 8 de febrero de 2026  
-**Versión**: 1.0
+**Estado**: ✅ IMPLEMENTADO según alcance de ETAPA 13.1

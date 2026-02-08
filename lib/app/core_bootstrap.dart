@@ -1,58 +1,56 @@
 /// ETAPA 13.1 - Bootstrap del CORE
 /// 
-/// Este archivo es responsable únicamente de INSTANCIAR los gestores/servicios
-/// del CORE (ETAPAS 1-12) que ya existen en el proyecto.
+/// Este archivo es responsable únicamente de preparar el CABLEADO (wiring)
+/// de los gestores del CORE (ETAPAS 1-12).
+/// 
+/// Los gestores del CORE son:
+/// - Validaciones
+/// - Diagnóstico
+/// - Reacciones
+/// - Ejecución abstracta
+/// - Auditoría
 /// 
 /// ⚠️ REGLAS ESTRICTAS:
 /// - NO ejecuta métodos de negocio
 /// - NO dispara eventos
 /// - NO simula escenarios
 /// - NO inicializa procesos automáticos
-/// - Solo CREA REFERENCIAS para inyección de dependencias
+/// - Solo PREPARA el contenedor para inyección de dependencias
 /// 
 /// Esto es CABLEADO (wiring), no USO.
 
-import '../services/bluetooth_service.dart';
-import '../services/weight_service.dart';
-import '../services/persistence_service.dart';
-import '../services/session_history_service.dart';
-import '../services/auth_service.dart';
-import '../services/pdf_export_service.dart';
-
-/// Contenedor de los servicios del CORE
+/// Contenedor para los gestores del CORE (ETAPAS 1-12)
 /// 
-/// Esta clase solo almacena referencias a los servicios singleton
-/// que ya existen en el proyecto. No ejecuta ninguna lógica.
+/// Esta clase está preparada para almacenar referencias a los gestores
+/// del CORE cuando sean implementados. Por ahora, actúa como un contenedor
+/// vacío que será poblado en etapas futuras.
+/// 
+/// NOTA: Los gestores del CORE aún no existen en el proyecto.
+/// Esta estructura está lista para recibirlos sin ejecutar ninguna lógica.
 class CoreBootstrap {
-  // Instancias de los servicios del CORE (ETAPAS 1-12)
-  // Estos servicios ya están implementados como singletons
-  late final BluetoothService bluetoothService;
-  late final WeightService weightService;
-  late final PersistenceService persistenceService;
-  late final SessionHistoryService sessionHistoryService;
-  late final AuthService authService;
-  late final PdfExportService pdfExportService;
+  // Aquí se agregarán referencias a los gestores del CORE:
+  // - Validaciones (cuando se implemente)
+  // - Diagnóstico (cuando se implemente)
+  // - Reacciones (cuando se implemente)
+  // - Ejecución abstracta (cuando se implemente)
+  // - Auditoría (cuando se implemente)
 
   CoreBootstrap._();
 
-  /// Inicializa las referencias a los servicios del CORE
+  /// Inicializa el contenedor del CORE
   /// 
-  /// ⚠️ IMPORTANTE: Solo obtiene las instancias singleton.
-  /// NO ejecuta ningún método de inicialización.
+  /// ⚠️ IMPORTANTE: Este método solo crea el contenedor vacío.
+  /// NO ejecuta ningún método.
   /// NO dispara ningún evento.
   /// NO realiza ninguna operación.
+  /// 
+  /// Los gestores del CORE se agregarán aquí cuando sean implementados.
   static CoreBootstrap initialize() {
     final bootstrap = CoreBootstrap._();
     
-    // Obtener referencias a los servicios singleton existentes
-    // Esto solo invoca los factory constructors, no ejecuta lógica
-    bootstrap.bluetoothService = BluetoothService();
-    bootstrap.weightService = WeightService();
-    bootstrap.persistenceService = PersistenceService();
-    bootstrap.sessionHistoryService = SessionHistoryService();
-    bootstrap.authService = AuthService();
-    bootstrap.pdfExportService = PdfExportService();
-
+    // El bootstrap está listo para recibir los gestores del CORE
+    // Por ahora, no hay gestores que instanciar
+    
     return bootstrap;
   }
 }

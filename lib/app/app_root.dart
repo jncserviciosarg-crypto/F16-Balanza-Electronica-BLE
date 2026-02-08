@@ -10,6 +10,7 @@
 /// - Solo proporciona la estructura base de la app
 
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'core_bootstrap.dart';
 import '../screens/home_screen.dart';
 import '../screens/f16_splash_screen.dart';
@@ -18,13 +19,36 @@ import '../screens/f16_splash_screen.dart';
 /// 
 /// Configura MaterialApp con theme básico y pantalla inicial.
 /// Mantiene la referencia al CoreBootstrap pero NO lo usa activamente.
-class AppRoot extends StatelessWidget {
+/// 
+/// NOTA: La configuración de SystemChrome (orientación, UI) proviene
+/// del código original de la app, NO es parte de ETAPA 13.1.
+class AppRoot extends StatefulWidget {
   final CoreBootstrap coreBootstrap;
 
   const AppRoot({
     super.key,
     required this.coreBootstrap,
   });
+
+  @override
+  State<AppRoot> createState() => _AppRootState();
+}
+
+class _AppRootState extends State<AppRoot> {
+  @override
+  void initState() {
+    super.initState();
+    
+    // Configuración del sistema (código original de la app)
+    // Forzar orientación horizontal
+    SystemChrome.setPreferredOrientations(<DeviceOrientation>[
+      DeviceOrientation.landscapeLeft,
+      DeviceOrientation.landscapeRight,
+    ]);
+
+    // Ocultar barra de estado
+    SystemChrome.setEnabledSystemUIMode(SystemUiMode.immersiveSticky);
+  }
 
   @override
   Widget build(BuildContext context) {
