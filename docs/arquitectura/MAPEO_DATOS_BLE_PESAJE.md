@@ -41,10 +41,10 @@ Este documento es **SOLO DESCRIPTIVO Y PROPOSITIVO**:
 
 El sistema recibe datos continuos de un dispositivo de pesaje externo (basado en ESP32) mediante **Bluetooth Low Energy (BLE)**. Este dispositivo:
 
-- **Envía**: Datos binarios en forma de stream continuo
+- **Envía**: Mensajes JSON completos en forma de stream continuo
 - **Frecuencia**: Aproximadamente cada 50 ms (20 Hz)
 - **Protocolo**: GATT (Generic Attribute Profile) con notificaciones
-- **Formato**: Binario puro (NO JSON)
+- **Formato**: JSON con campos estructurados
 
 ### 1.2 Especificaciones BLE
 
@@ -65,56 +65,57 @@ El sistema recibe datos continuos de un dispositivo de pesaje externo (basado en
 
 ### 1.3 Estructura del Mensaje BLE
 
-#### Formato Binario
+#### Formato JSON
 
-```
-┌─────────────────────────────────────────────────────┐
-│ Paquete BLE (Notificación)                          │
-├─────────┬─────────┬─────────┬─────────┬─────────────┤
-│ Byte 0  │ Byte 1  │ Byte 2  │ Byte 3  │ Bytes 4+... │
-├─────────┴─────────┴─────────┴─────────┼─────────────┤
-│                                        │             │
-│      Valor ADC (Int32 Little Endian)   │  (Ignorado) │
-│                                        │             │
-└────────────────────────────────────────┴─────────────┘
+El ESP32 envía un **objeto JSON completo** por cada notificación BLE:
+
+```json
+{
+  "adc": 1234,
+  "peso": 12.34
+}
 ```
 
-#### Campo Único: Valor ADC
+#### Campos del JSON
 
-| Campo | Offset | Tamaño | Tipo | Interpretación |
-|-------|--------|--------|------|----------------|
-| **ADC crudo** | 0 | 4 bytes | Int32 | Little Endian |
+| Campo | Tipo | Unidad | Descripción |
+|-------|------|--------|-------------|
+| **adc** | Entero | Cuentas ADC | Valor crudo del convertidor analógico-digital (señal) |
+| **peso** | Decimal | kg | Peso calculado en paralelo por el ESP32 (interpretación) |
 
-**Descripción del campo ADC crudo**:
-- **Tipo de dato**: Entero con signo de 32 bits
-- **Rango teórico**: -2,147,483,648 a 2,147,483,647
+**Descripción de los campos**:
+
+**Campo `adc` (ADC crudo)**:
+- **Tipo de dato**: Entero (int)
 - **Rango práctico esperado**: 0 a 4095 (sugiere ADC de 12 bits) o mayor según hardware
 - **Representación**: Cuenta digital directa del convertidor analógico-digital
 - **Origen físico**: Señal de celda de carga → amplificador → ADC → valor numérico
+- **Rol**: Señal primaria para filtrado y calibración en la aplicación
 
-#### Ejemplo de Payload Real
+**Campo `peso` (Peso calculado)**:
+- **Tipo de dato**: Decimal (float/double)
+- **Unidad**: Kilogramos (kg)
+- **Origen**: Cálculo realizado por el ESP32 (puede incluir calibración básica)
+- **Rol**: Valor informativo/diagnóstico que viaja en paralelo
 
+#### Ejemplo de Mensaje Real
+
+```json
+{
+  "adc": 1000,
+  "peso": 10.5
+}
 ```
-Bytes recibidos vía BLE:
-[0xE8, 0x03, 0x00, 0x00]
- └─┬──┘  └─┬──┘  └─┬──┘  └─┬──┘
-   │       │       │       │
- Byte 0  Byte 1  Byte 2  Byte 3
 
-Interpretación Little Endian:
-  0x 00 00 03 E8
-     └──┬──┘ └┬─┘
-      Alta  Baja
-
-Conversión decimal:
-  0x000003E8 = 1000 (decimal)
-
-Resultado: ADC = 1000 cuentas
-```
+**Interpretación**:
+- El sensor reporta 1000 cuentas ADC (señal cruda)
+- El ESP32 calculó 10.5 kg como peso (interpretación paralela)
+- La aplicación debe usar principalmente el campo `adc` para procesamiento
+- El campo `peso` puede usarse para diagnóstico o validación
 
 ### 1.4 Significado de los Datos
 
-#### ADC Crudo: Señal, NO Interpretación
+#### ADC Crudo: Señal Primaria
 
 El valor ADC es una **señal digital cruda** que representa:
 
@@ -124,35 +125,76 @@ El valor ADC es una **señal digital cruda** que representa:
 | **Unidad** | Cuentas ADC (adimensional) |
 | **Relación física** | Proporcional al peso aplicado sobre la celda de carga |
 | **Estado** | Sin procesar, sin filtrar, sin calibrar |
+| **Rol en la aplicación** | Señal primaria para filtrado y calibración |
 
 **Importante**: El ADC NO es peso. Es la materia prima que debe procesarse.
 
-#### ¿Por Qué NO Viene el Peso Calculado?
+#### Peso Calculado: Valor Informativo en Paralelo
 
-El diseño actual del protocolo envía solo ADC crudo por las siguientes razones:
+El campo `peso` es un **valor calculado por el ESP32** que viaja en paralelo:
 
-1. **Flexibilidad**: Permite aplicar diferentes estrategias de filtrado en la aplicación
-2. **Calibración dinámica**: La app puede recalibrar sin cambiar firmware
-3. **Procesamiento sofisticado**: Permite filtros adaptativos no implementables en hardware simple
-4. **Tara y cero**: Operaciones que requieren estado de UI y contexto de usuario
+| Aspecto | Descripción |
+|---------|-------------|
+| **Naturaleza** | Interpretación/cálculo realizado en el hardware |
+| **Unidad** | Kilogramos (kg) |
+| **Estado** | Posiblemente incluye calibración básica del ESP32 |
+| **Rol en la aplicación** | Informativo, diagnóstico, validación |
+
+**Observación**: La aplicación puede comparar su peso calculado con el peso del ESP32 para diagnóstico.
+
+#### Relación entre ADC y Peso
+
+```
+┌─────────────────────────────────────────────────┐
+│           Mensaje JSON del ESP32                │
+│                                                 │
+│  ┌──────────────┐        ┌──────────────┐      │
+│  │   adc: 1234  │        │ peso: 12.34  │      │
+│  │   (Señal)    │        │ (Interpreta) │      │
+│  └──────┬───────┘        └──────┬───────┘      │
+│         │                       │              │
+└─────────┼───────────────────────┼──────────────┘
+          │                       │
+          │                       │
+          ▼                       ▼
+    ┌──────────────┐        ┌──────────────┐
+    │ Procesamiento│        │  Puede usarse│
+    │   en App     │        │ para diagnós-│
+    │              │        │ tico/validac │
+    │ Filtros →    │        │              │
+    │ Calibración →│        │              │
+    │ Peso Final   │        │              │
+    └──────────────┘        └──────────────┘
+```
+
+#### ¿Por Qué Enviar Ambos Valores?
+
+El protocolo envía tanto ADC como peso calculado por las siguientes razones:
+
+1. **ADC como señal primaria**: La aplicación tiene control total sobre filtrado y calibración sofisticados
+2. **Flexibilidad de procesamiento**: Permite aplicar diferentes estrategias de filtrado en la aplicación
+3. **Calibración dinámica**: La app puede recalibrar sin cambiar firmware del ESP32
+4. **Peso como diagnóstico**: Permite comparar el cálculo del ESP32 vs el de la aplicación
+5. **Validación cruzada**: El usuario/técnico puede verificar consistencia entre ambos valores
+6. **Tara y cero**: Operaciones que requieren estado de UI y contexto de usuario
 
 ### 1.5 Validación del Protocolo
 
-#### Validaciones Implementadas
+#### Validaciones Esperadas para JSON
 
 | Validación | Descripción | Acción en caso de fallo |
 |------------|-------------|------------------------|
-| **Tamaño mínimo** | `data.length >= 4` | Descartar paquete y loguear |
-| **Manejo de excepciones** | Try-catch en parseo | Loguear error y continuar |
+| **JSON válido** | Verificar que el payload sea JSON bien formado | Descartar mensaje y loguear |
+| **Campos requeridos** | Verificar presencia de `adc` y `peso` | Descartar mensaje y loguear |
+| **Tipos de datos** | `adc` debe ser entero, `peso` debe ser numérico | Descartar mensaje y loguear |
+| **Manejo de excepciones** | Try-catch en parseo JSON | Loguear error y continuar |
 
-#### Validaciones NO Implementadas
+#### Validaciones Opcionales
 
-| Validación | Razón de NO implementación |
-|------------|---------------------------|
-| **Rango de ADC** | Hardware puede tener diferentes resoluciones |
-| **Valores negativos** | Int32 con signo permite firmado |
-| **Checksum/CRC** | No presente en protocolo actual |
-| **Secuencia de paquetes** | Stream continuo sin numeración |
+| Validación | Razón |
+|------------|-------|
+| **Rango de ADC** | Hardware puede tener diferentes resoluciones, validar según necesidad |
+| **Coherencia ADC-Peso** | Verificar que el peso del ESP32 sea consistente con el ADC (diagnóstico) |
 
 ---
 
@@ -163,11 +205,18 @@ El diseño actual del protocolo envía solo ADC crudo por las siguientes razones
 El procesamiento de ADC → Peso sigue un pipeline secuencial y validado:
 
 ```
-┌──────────────┐
-│  ADC Crudo   │ ← Entrada desde BLE (cada ~50ms)
-│   (Señal)    │   - Valor directo del sensor
-└──────┬───────┘   - Sin procesar
-       │           - Unidad: cuentas ADC
+┌──────────────────────────────┐
+│  Mensaje JSON desde BLE      │ ← Entrada desde BLE (cada ~50ms)
+│  {"adc": 1234, "peso": 12.34}│   - JSON completo
+└──────┬───────────────────────┘   - Dos campos: adc + peso
+       │
+       │ Parsing JSON
+       ▼
+┌──────────────────────────────┐
+│  Campo ADC extraído          │
+│  (Señal Cruda)               │   - Valor directo del sensor
+└──────┬───────────────────────┘   - Sin procesar
+       │                            - Unidad: cuentas ADC
        ▼
 ┌──────────────────────────────────────────────────┐
 │ ETAPA 1: ALMACENAMIENTO EN BUFFER                │
@@ -335,17 +384,20 @@ Esta sección define **dónde debería vivir cada responsabilidad** en una arqui
 │  │  • Gestión de conexión BLE                        │  │
 │  │  • Escaneo de dispositivos                        │  │
 │  │  • Activación de notificaciones GATT              │  │
-│  │  • Recepción de bytes crudos                      │  │
-│  │  • Parsing binario (4 bytes → Int32)              │  │
+│  │  • Recepción de mensajes JSON vía BLE             │  │
+│  │  • Parsing JSON (extracción de campos)            │  │
 │  │  • Emisión de ADC crudo a observadores            │  │
+│  │  • Emisión de peso del ESP32 a observadores       │  │
+│  │    (para diagnóstico/validación)                  │  │
 │  │                                                   │  │
 │  │  Límites:                                          │  │
-│  │  • NO procesa el ADC (solo extrae)                │  │
-│  │  • NO conoce el concepto de "peso"                │  │
+│  │  • NO procesa el ADC (solo extrae del JSON)       │  │
+│  │  • NO calcula peso (solo pasa el del ESP32)       │  │
 │  │  • NO aplica filtros                              │  │
 │  │                                                   │  │
-│  │  Salida:                                           │  │
+│  │  Salidas:                                          │  │
 │  │  • Stream<int> adcStream                          │  │
+│  │  • Stream<double> pesoESP32Stream (opcional)      │  │
 │  └───────────────────────────────────────────────────┘  │
 │                                                           │
 └───────────────────────┬───────────────────────────────────┘
@@ -461,15 +513,18 @@ Esta sección define **dónde debería vivir cada responsabilidad** en una arqui
 |-----------------|---------|
 | **Conectar** | Escanear, conectar, configurar MTU |
 | **Recibir** | Suscribirse a notificaciones GATT |
-| **Parsear** | Convertir bytes → Int32 |
-| **Emitir** | Publicar ADC en stream observable |
+| **Parsear JSON** | Convertir mensaje JSON → campos estructurados |
+| **Extraer campos** | Extraer `adc` (int) y `peso` (double) del JSON |
+| **Emitir** | Publicar ADC y peso ESP32 en streams observables |
 
 **NO hace**:
-- NO filtra
+- NO filtra el ADC
 - NO calibra
-- NO conoce qué es "peso"
+- NO procesa el peso (solo lo pasa como diagnóstico)
 
-**Salida**: `Stream<int> adcStream`
+**Salidas**: 
+- `Stream<int> adcStream` (señal primaria)
+- `Stream<double> pesoESP32Stream` (informativo/diagnóstico)
 
 #### CORE DE PROCESAMIENTO
 
@@ -515,7 +570,8 @@ Esta sección define **dónde debería vivir cada responsabilidad** en una arqui
 
 **Expone**:
 - `ValueNotifier<int> adcActual`
-- `ValueNotifier<double> pesoActual`
+- `ValueNotifier<double> pesoActual` (peso procesado por la app)
+- `ValueNotifier<double> pesoESP32` (peso del ESP32, opcional para diagnóstico)
 - `ValueNotifier<BluetoothStatus> conexionBLE`
 - `ValueNotifier<bool> estable`
 
@@ -548,24 +604,29 @@ Esta sección describe **conceptualmente** qué debería poder hacer el usuario 
 El sistema debe permitir **ver simultáneamente**:
 
 ```
-┌─────────────────────────────────┐
-│     PANTALLA PRINCIPAL          │
-│                                 │
-│  ADC Crudo:     1234 cuentas    │  ← Señal directa del sensor
-│  ────────────────────────────   │
-│                                 │
-│  Peso:          12.34 kg        │  ← Resultado procesado
-│  ────────────────────────────   │
-│                                 │
-│  Estado:        ⚫ Estable       │  ← Indicador de estabilidad
-│                                 │
-└─────────────────────────────────┘
+┌─────────────────────────────────────┐
+│     PANTALLA PRINCIPAL              │
+│                                     │
+│  ADC Crudo:     1234 cuentas        │  ← Señal directa del sensor (del JSON)
+│  ────────────────────────────────   │
+│                                     │
+│  Peso App:      12.34 kg            │  ← Resultado procesado por la app
+│  ────────────────────────────────   │
+│                                     │
+│  Peso ESP32:    12.30 kg            │  ← Peso del ESP32 (diagnóstico/validación)
+│  ────────────────────────────────   │
+│                                     │
+│  Estado:        ⚫ Estable           │  ← Indicador de estabilidad
+│                                     │
+└─────────────────────────────────────┘
 ```
 
 **Razón**: Transparencia y diagnóstico. El usuario/técnico puede:
 - Verificar que el sensor funciona (ADC cambia)
 - Confirmar que el procesamiento es correcto
+- Comparar peso de la app vs peso del ESP32
 - Detectar problemas (ADC cambia pero peso no, o viceversa)
+- Validar calibración (ambos pesos deberían ser similares)
 
 #### Principio 2: Configuración Separada por Concepto
 
@@ -610,7 +671,8 @@ Las configuraciones deben estar organizadas conceptualmente:
 | Dato a Mostrar | Ubicación Conceptual | Actualización |
 |----------------|---------------------|---------------|
 | **ADC crudo** | Pantalla principal | Tiempo real (~100ms) |
-| **Peso procesado** | Pantalla principal | Tiempo real (~100ms) |
+| **Peso procesado (App)** | Pantalla principal | Tiempo real (~100ms) |
+| **Peso ESP32** | Pantalla principal (diagnóstico) | Tiempo real (~50ms) |
 | **Indicador de estabilidad** | Pantalla principal | Tiempo real |
 | **Estado de conexión BLE** | Header / Barra superior | Al cambiar |
 | **Configuración activa** | Pantalla de ajustes | Al modificar |
@@ -657,19 +719,29 @@ Usuario                      UI                    CORE
 ```
 Adaptador BLE          CORE                 Estado           UI
       │                 │                     │              │
-      │ ADC=1234       │                     │              │
+      │ JSON recibido  │                     │              │
+      │ {adc:1234,     │                     │              │
+      │  peso:12.30}   │                     │              │
+      │─────────────────>│                     │              │
+      │                 │                     │              │
+      │ Emite ADC=1234 │                     │              │
       │─────────────────>│                     │              │
       │                 │                     │              │
       │                 │ Filtra+Calibra     │              │
-      │                 │ Peso=12.34 kg      │              │
+      │                 │ PesoApp=12.34 kg   │              │
       │                 │─────────────────────>│              │
+      │                 │                     │              │
+      │ Emite Peso     │                     │              │
+      │ ESP32=12.30    │                     │              │
+      │─────────────────────────────────────>│              │
       │                 │                     │              │
       │                 │                     │ Notifica     │
       │                 │                     │──────────────>│
       │                 │                     │              │
       │                 │                     │              │ Renderiza:
       │                 │                     │              │ ADC: 1234
-      │                 │                     │              │ Peso: 12.34
+      │                 │                     │              │ Peso App: 12.34
+      │                 │                     │              │ Peso ESP32: 12.30
 ```
 
 ### 4.4 Subsecciones Propuestas de Configuración
