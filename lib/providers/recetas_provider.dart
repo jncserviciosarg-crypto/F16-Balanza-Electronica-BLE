@@ -15,7 +15,7 @@ export '../services/persistence/recetas_repository.dart'
 class RecetasProvider extends ChangeNotifier {
   final RecetasRepository _repo;
 
-  RecetasProvider(this._repo);
+  RecetasProvider() : _repo = RecetasRepository();
 
   List<String>? _handleResult(RecetaOperationResult result) {
     return switch (result) {

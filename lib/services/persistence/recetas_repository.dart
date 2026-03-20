@@ -1,6 +1,8 @@
-import 'dart:convert';
+import 'dart:io';
 
-import 'package:shared_preferences/shared_preferences.dart';
+import 'package:flutter/foundation.dart';
+import 'package:path_provider/path_provider.dart';
+import 'package:sqflite/sqflite.dart';
 
 // ---------------------------------------------------------------------------
 // Data types
@@ -75,33 +77,104 @@ final class RecetaOperationFailure extends RecetaOperationResult {
 }
 
 // ---------------------------------------------------------------------------
+// Database helper
+// ---------------------------------------------------------------------------
+
+class _AppDatabase {
+  static Database? _db;
+
+  static Future<Database> get instance async {
+    if (_db != null) return _db!;
+    _db = await _open();
+    return _db!;
+  }
+
+  static Future<Database> _open() async {
+    Directory dir;
+    try {
+      dir = await getApplicationDocumentsDirectory();
+    } catch (e) {
+      debugPrint('[RecetasRepository] Could not get documents directory: $e');
+      dir = Directory.systemTemp;
+    }
+    final path = '${dir.path}/recetas.db';
+    return openDatabase(
+      path,
+      version: 1,
+      onCreate: (db, _) async {
+        await db.execute('PRAGMA foreign_keys = ON');
+        await db.execute('''
+          CREATE TABLE recetas (
+            id      INTEGER PRIMARY KEY AUTOINCREMENT,
+            nombre  TEXT    NOT NULL,
+            tipo    TEXT    NOT NULL,
+            en_ronda INTEGER NOT NULL DEFAULT 0
+          )
+        ''');
+        await db.execute('''
+          CREATE TABLE receta_ingredientes (
+            id             INTEGER PRIMARY KEY AUTOINCREMENT,
+            receta_id      INTEGER NOT NULL REFERENCES recetas(id),
+            ingrediente_id INTEGER NOT NULL,
+            kg             INTEGER NOT NULL,
+            posicion       INTEGER NOT NULL DEFAULT 0
+          )
+        ''');
+      },
+      onOpen: (db) async {
+        await db.execute('PRAGMA foreign_keys = ON');
+      },
+    );
+  }
+}
+
+// ---------------------------------------------------------------------------
 // Repository
 // ---------------------------------------------------------------------------
 
 class RecetasRepository {
-  final SharedPreferences _prefs;
-
-  static const String _keyPrefix = 'receta_';
-  static const String _idsKey = 'recetas_ids';
-  static const String _rondasPrefix = 'receta_en_ronda_';
-
-  RecetasRepository(this._prefs);
-
   // LECTURA ---------------------------------------------------------------
 
   Future<RecetaConIngredientes?> getById(int recetaId) async {
-    final json = _prefs.getString('$_keyPrefix$recetaId');
-    if (json == null) return null;
-    return _fromJson(jsonDecode(json) as Map<String, dynamic>);
+    final db = await _AppDatabase.instance;
+    final rows = await db.query(
+      'recetas',
+      where: 'id = ?',
+      whereArgs: [recetaId],
+    );
+    if (rows.isEmpty) return null;
+    final row = rows.first;
+    final ingredientes = await db.query(
+      'receta_ingredientes',
+      where: 'receta_id = ?',
+      whereArgs: [recetaId],
+      orderBy: 'posicion ASC',
+    );
+    return RecetaConIngredientes(
+      receta: RecetaRow(
+        id: row['id']! as int,
+        nombre: row['nombre']! as String,
+        tipo: row['tipo']! as String,
+      ),
+      tipo: row['tipo']! as String,
+      ingredientes: ingredientes
+          .map(
+            (i) => RecetaIngredienteRow(
+              ingredienteId: i['ingrediente_id']! as int,
+              kg: i['kg']! as int,
+              posicion: i['posicion']! as int,
+            ),
+          )
+          .toList(),
+    );
   }
 
   Future<List<RecetaConIngredientes>> getAll() async {
-    final ids = _prefs.getStringList(_idsKey) ?? [];
+    final db = await _AppDatabase.instance;
+    final rows = await db.query('recetas');
     final results = <RecetaConIngredientes>[];
-    for (final idStr in ids) {
-      final id = int.tryParse(idStr);
-      if (id == null) continue;
-      final r = await getById(id);
+    for (final row in rows) {
+      final r = await getById(row['id']! as int);
       if (r != null) results.add(r);
     }
     return results;
@@ -118,37 +191,42 @@ class RecetasRepository {
       return RecetaOperationResult.failure(['Receta no encontrada.']);
     }
 
-    final enRonda = _prefs.getBool('$_rondasPrefix$recetaId') ?? false;
+    final db = await _AppDatabase.instance;
+    final rows = await db.query(
+      'recetas',
+      columns: ['en_ronda'],
+      where: 'id = ?',
+      whereArgs: [recetaId],
+    );
+    final enRonda = (rows.first['en_ronda']! as int) != 0;
     if (enRonda) {
       return RecetaOperationResult.failure([
         'No se puede editar una receta que está siendo usada en una ronda.',
       ]);
     }
 
-    final updated = RecetaConIngredientes(
-      receta: RecetaRow(
-        id: recetaId,
-        nombre: input.nombre,
-        tipo: input.tipo,
-      ),
-      tipo: input.tipo,
-      ingredientes: input.ingredientes
-          .asMap()
-          .entries
-          .map(
-            (e) => RecetaIngredienteRow(
-              ingredienteId: e.value.ingredienteId,
-              kg: e.value.kg,
-              posicion: e.key,
-            ),
-          )
-          .toList(),
-    );
-
-    await _prefs.setString(
-      '$_keyPrefix$recetaId',
-      jsonEncode(_toJson(updated)),
-    );
+    await db.transaction((txn) async {
+      await txn.update(
+        'recetas',
+        {'nombre': input.nombre, 'tipo': input.tipo},
+        where: 'id = ?',
+        whereArgs: [recetaId],
+      );
+      await txn.delete(
+        'receta_ingredientes',
+        where: 'receta_id = ?',
+        whereArgs: [recetaId],
+      );
+      for (int i = 0; i < input.ingredientes.length; i++) {
+        final item = input.ingredientes[i];
+        await txn.insert('receta_ingredientes', {
+          'receta_id': recetaId,
+          'ingrediente_id': item.ingredienteId,
+          'kg': item.kg,
+          'posicion': i,
+        });
+      }
+    });
 
     return RecetaOperationResult.success(id: recetaId);
   }
@@ -164,78 +242,30 @@ class RecetasRepository {
       return RecetaOperationResult.failure(['Receta no encontrada.']);
     }
 
-    final updatedIngredientes = <RecetaIngredienteRow>[];
-    for (int i = 0; i < ingredientesOrdenados.length; i++) {
-      final item = ingredientesOrdenados[i];
-      final existing = receta.ingredientes.where(
-        (ing) => ing.ingredienteId == item.ingredienteId,
-      );
-      if (existing.isEmpty) {
+    // Validate all provided ingredienteIds belong to this recipe.
+    final existingIds =
+        receta.ingredientes.map((ing) => ing.ingredienteId).toSet();
+    for (final item in ingredientesOrdenados) {
+      if (!existingIds.contains(item.ingredienteId)) {
         return RecetaOperationResult.failure([
           'Ingrediente ${item.ingredienteId} no pertenece a la receta.',
         ]);
       }
-      updatedIngredientes.add(
-        RecetaIngredienteRow(
-          ingredienteId: item.ingredienteId,
-          kg: existing.first.kg,
-          posicion: i,
-        ),
-      );
     }
 
-    final updated = RecetaConIngredientes(
-      receta: receta.receta,
-      tipo: receta.tipo,
-      ingredientes: updatedIngredientes,
-    );
-
-    await _prefs.setString(
-      '$_keyPrefix$recetaId',
-      jsonEncode(_toJson(updated)),
-    );
+    final db = await _AppDatabase.instance;
+    await db.transaction((txn) async {
+      for (int i = 0; i < ingredientesOrdenados.length; i++) {
+        final item = ingredientesOrdenados[i];
+        await txn.update(
+          'receta_ingredientes',
+          {'posicion': i},
+          where: 'receta_id = ? AND ingrediente_id = ?',
+          whereArgs: [recetaId, item.ingredienteId],
+        );
+      }
+    });
 
     return RecetaOperationResult.success(id: recetaId);
-  }
-
-  // Helpers ---------------------------------------------------------------
-
-  RecetaConIngredientes _fromJson(Map<String, dynamic> json) {
-    final receta = RecetaRow(
-      id: json['id'] as int,
-      nombre: json['nombre'] as String,
-      tipo: json['tipo'] as String,
-    );
-    final ingredientes = (json['ingredientes'] as List<dynamic>)
-        .map(
-          (i) => RecetaIngredienteRow(
-            ingredienteId: i['ingredienteId'] as int,
-            kg: i['kg'] as int,
-            posicion: i['posicion'] as int,
-          ),
-        )
-        .toList();
-    return RecetaConIngredientes(
-      receta: receta,
-      tipo: receta.tipo,
-      ingredientes: ingredientes,
-    );
-  }
-
-  Map<String, dynamic> _toJson(RecetaConIngredientes r) {
-    return {
-      'id': r.receta.id,
-      'nombre': r.receta.nombre,
-      'tipo': r.tipo,
-      'ingredientes': r.ingredientes
-          .map(
-            (i) => {
-              'ingredienteId': i.ingredienteId,
-              'kg': i.kg,
-              'posicion': i.posicion,
-            },
-          )
-          .toList(),
-    };
   }
 }
